@@ -1,5 +1,4 @@
 use std::{path::{self,PathBuf},fmt::{self,write},io};
-use crate::{get_file_extension};
 
 #[derive(Debug,Clone)]
 pub struct File {
@@ -67,7 +66,7 @@ fn get_file_extension(file_name: &String)->Option<String>{
     vec_buf.get(1).cloned()
 }
 
-fn get_files(dir: &Directory)->io::Result<Vec<File>>{
+pub fn get_files(dir: &Directory)->io::Result<Vec<File>>{
     let mut files: Vec<File> = vec![];
     if dir.d_path.is_dir(){
         if let Ok(d_path) = dir.d_path
@@ -83,3 +82,20 @@ fn get_files(dir: &Directory)->io::Result<Vec<File>>{
     Ok(files)
 }
 
+fn get_type_for_extension(extension: &str)->Option<String>{
+
+    let file_choice: HashMap<&str,Vec<&str>> = HashMap::from([
+        ("Audio",vec!["mp3","wav"]),
+        ("Videos",vec!["mp4","mov"]),
+        ("Documents",vec!["pdf","txt"]),
+        ("Executables",vec!["sh","bash"]),
+    ]);
+    
+    for (key,val) in file_choice {
+            if val.contains(&extension){
+                return Some(key.to_string());
+            }
+    }
+    return None;
+
+}
