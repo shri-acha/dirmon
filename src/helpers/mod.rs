@@ -1,5 +1,8 @@
-use std::{path::{self,PathBuf},fmt::{self,write},io};
-use std::collections::HashMap;
+use std::{path::{self,PathBuf},fmt::{self,write},io,fs::{self}};
+use std::collections::{HashMap,HashSet};
+use std::hash::Hash;
+
+
 
 #[derive(Debug,Clone)]
 pub struct File {
@@ -52,7 +55,6 @@ impl Directory {
         self.d_files.push(file_buf);
         Ok(())
     }
-
 }
 
 
@@ -102,3 +104,47 @@ pub fn get_type_for_extension(extension: &str)->Option<String>{
 
 }
 
+pub fn move_files(monitoring_dir: &Directory,files_list: &Vec<Box<File>>)->Result<String,String> {
+    for file in files_list{
+        if let Some(dir_name) = get_type_for_extension(&file.f_extension){
+        let u_path = monitoring_dir.d_path.join(dir_name);
+        let d_path = u_path.join(file.f_name.clone());
+        let s_path = &file.f_path;
+
+            if u_path.exists(){
+                if let Ok(size) =  fs_extra::file::move_file(s_path,&d_path,
+                    &fs_extra::file::CopyOptions::new()){
+                    println!("successfully moved file! [{}] s:{:?}\td:{:?}\n",size,s_path,&d_path);
+                }else {
+                    println!("failed to move file! s:{:?}\td:{:?}\n",s_path,&d_path);
+                }
+            }
+            else{
+                    println!("{:?} missing directory!",u_path);
+                }
+            }
+        }
+        return Err("internal error, no type exists for supported extension!".to_string());
+}
+
+pub fn check_and_write_dir(monitoring_dir:&Directory ,u_extensions: &HashSet<String>)->Result<String,String>{
+    for extension in u_extensions.iter(){
+        let dir_name = get_type_for_extension(extension);
+        if let Some(dir_name) = dir_name {
+            let u_path = monitoring_dir.d_path.join(dir_name);
+            if !u_path.exists(){
+                if let Ok(_) = fs::create_dir(&u_path){
+                    println!("{:?} created!",u_path);
+                    return Ok(format!("{:?} created!",u_path));
+                }else{
+                    println!("{:?} creation failed!",u_path);
+                } }
+            else{
+                 println!("{:?} already exists!",u_path);
+            }
+        }else{
+            println!("{:?} extension type not supported!",dir_name);
+        }
+    }
+    return Err(format!("no files in directory!"));
+}
