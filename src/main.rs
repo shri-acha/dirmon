@@ -2,24 +2,7 @@ mod helpers;
 use helpers::*;
 use std::collections::{HashMap,HashSet};
 use std::{path::{self,PathBuf},fmt::{self,write},io::{self},fs};
-
-fn get_type_for_extension(extension: &str)->Option<String>{
-
-    let file_choice: HashMap<&str,Vec<&str>> = HashMap::from([
-        ("Audio",vec!["mp3","wav"]),
-        ("Videos",vec!["mp4","mov"]),
-        ("Documents",vec!["pdf","txt"]),
-        ("Executables",vec!["sh","bash"]),
-    ]);
-    
-    for (key,val) in file_choice {
-            if val.contains(&extension){
-                return Some(key.to_string());
-            }
-    }
-    return None;
-}
-
+use fs_extra::file;
 
 fn main() {
 
@@ -28,15 +11,18 @@ fn main() {
     let supported_types: Vec<_> = vec!["Audio","Video","Documents","Executables"];
 
 
-    let monitoring_dir: Directory = Directory::new(String::from("/home/shri/Downloads/"),vec![]);
-    let files_list: Vec<File> = get_files(&monitoring_dir).unwrap_or(vec![]);
+    let monitoring_dir: Directory = Directory::new(String::from("/home/shri/Documents/TICKETS"),vec![]);
+
+    // directory creation pass
+    //
+    let files_list: Vec<Box<File>> = get_files(&monitoring_dir).unwrap_or(vec![]);
 
 
     let mut extensions: Vec<String> = vec![];
-    for file in files_list {
+    for file in &files_list {
         // println!("{:?}",file.f_extension);
         if supported_extensions.contains(&file.f_extension.as_str()){
-            extensions.push(file.f_extension);
+            extensions.push(file.f_extension.clone());
         }
     }
 
@@ -54,8 +40,7 @@ fn main() {
                     println!("{:?} created!",u_path);
                 }else{
                     println!("{:?} creation failed!",u_path);
-                }
-            }
+                } }
             else{
                  println!("{:?} already exists!",u_path);
             }
@@ -63,5 +48,26 @@ fn main() {
             println!("{:?} extension type not supported!",dir_name);
         }
     }
+    // file move pass
+    //
+    for file in &files_list{
+        if let Some(dir_name) = get_type_for_extension(&file.f_extension){
+        let u_path = monitoring_dir.d_path.join(dir_name);
+        let d_path = u_path.join(file.f_name.clone());
+        let s_path = &file.f_path;
 
-}
+            if u_path.exists(){
+                if let Ok(size) =  fs_extra::file::move_file(s_path,&d_path,
+                    &fs_extra::file::CopyOptions::new()){
+                    println!("successfully moved file! [{}] s:{:?}\td:{:?}\n",size,s_path,&d_path);
+                }else {
+                    println!("failed to move file! s:{:?}\td:{:?}\n",s_path,&d_path);
+                }
+            }
+            else{
+                    println!("{:?} missing directory!",u_path);
+                }
+            }
+        }
+    }
+

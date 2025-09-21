@@ -1,4 +1,5 @@
 use std::{path::{self,PathBuf},fmt::{self,write},io};
+use std::collections::HashMap;
 
 #[derive(Debug,Clone)]
 pub struct File {
@@ -66,14 +67,15 @@ fn get_file_extension(file_name: &String)->Option<String>{
     vec_buf.get(1).cloned()
 }
 
-pub fn get_files(dir: &Directory)->io::Result<Vec<File>>{
-    let mut files: Vec<File> = vec![];
+pub fn get_files(dir: &Directory)->io::Result<Vec<Box<File>>>{
+
+    let mut files: Vec<Box<File>> = vec![];
     if dir.d_path.is_dir(){
         if let Ok(d_path) = dir.d_path
                                 .read_dir(){
             for entry in d_path {
                 if let Ok(entry) = entry{
-                    let mut file_buf = File::new(entry.path().to_str().unwrap().to_string(),);
+                    let mut file_buf = Box::new(File::new(entry.path().to_str().unwrap().to_string(),));
                     files.push(file_buf);
                 }
             }
@@ -82,7 +84,7 @@ pub fn get_files(dir: &Directory)->io::Result<Vec<File>>{
     Ok(files)
 }
 
-fn get_type_for_extension(extension: &str)->Option<String>{
+pub fn get_type_for_extension(extension: &str)->Option<String>{
 
     let file_choice: HashMap<&str,Vec<&str>> = HashMap::from([
         ("Audio",vec!["mp3","wav"]),
@@ -99,3 +101,4 @@ fn get_type_for_extension(extension: &str)->Option<String>{
     return None;
 
 }
+
