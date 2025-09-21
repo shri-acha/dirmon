@@ -129,10 +129,14 @@ pub fn move_files(monitoring_dir: &Directory,files_list: &Vec<Box<File>>)->Resul
 
 pub fn check_and_write_dir(monitoring_dir:&Directory ,u_extensions: &HashSet<String>)->Result<String,String>{
     for extension in u_extensions.iter(){
+
         let dir_name = get_type_for_extension(extension);
+
         if let Some(dir_name) = dir_name {
+
             let u_path = monitoring_dir.d_path.join(dir_name);
             if !u_path.exists(){
+
                 if let Ok(_) = fs::create_dir(&u_path){
                     println!("{:?} created!",u_path);
                     return Ok(format!("{:?} created!",u_path));
@@ -148,3 +152,4 @@ pub fn check_and_write_dir(monitoring_dir:&Directory ,u_extensions: &HashSet<Str
     }
     return Err(format!("no files in directory!"));
 }
+
