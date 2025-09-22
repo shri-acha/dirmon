@@ -13,9 +13,11 @@ pub struct File {
 
 impl File{
     pub fn new(f_path: String)->Self{
+
         let f_path = PathBuf::from(f_path);
         let f_name = f_path.file_name().unwrap().to_str().unwrap_or("").to_string();
         let f_extension = get_file_extension(&f_name).unwrap_or("".to_string());
+
         Self{
             f_path,
             f_name,
@@ -38,7 +40,7 @@ impl fmt::Display for File{
 
 #[derive(Debug,Clone)]
 pub struct Directory{
-    pub d_path: PathBuf,
+    pub d_path: Box<PathBuf>,
     pub d_files :Vec<File>, 
 }
 
@@ -46,7 +48,7 @@ impl Directory {
 
     pub fn new(d_path: String,d_files: Vec<File>)->Self{
         Self{
-            d_path:PathBuf::from(d_path),
+            d_path:Box::new(PathBuf::from(d_path)),
             d_files:d_files,
         }
     }
@@ -111,16 +113,21 @@ pub fn move_files(monitoring_dir: &Directory,files_list: &Vec<Box<File>>)->Resul
         let d_path = u_path.join(file.f_name.clone());
         let s_path = &file.f_path;
 
-            if u_path.exists(){
-                if let Ok(size) =  fs_extra::file::move_file(s_path,&d_path,
-                    &fs_extra::file::CopyOptions::new()){
-                    println!("successfully moved file! [{}] s:{:?}\td:{:?}\n",size,s_path,&d_path);
+            if u_path.exists() {
+                if !d_path.exists() {
+                    if let Ok(size) =  fs_extra::file::move_file(s_path,&d_path,
+                        &fs_extra::file::CopyOptions::new()){
+                        println!("successfully moved file! [{}] s:{:?}\td:{:?}",size,s_path,&d_path);
+                    }else {
+                        println!("failed to move file! s:{:?}\td:{:?}",s_path,&d_path);
+                    }
                 }else {
-                    println!("failed to move file! s:{:?}\td:{:?}\n",s_path,&d_path);
+                        println!("file already exists in the destination!");
                 }
+
             }
             else{
-                    println!("{:?} missing directory!",u_path);
+                    println!("{:?} missing directory or file already exists!",u_path);
                 }
             }
         }
