@@ -18,11 +18,12 @@ fn main() ->notify::Result<()>{
 
     let supported_extensions: Vec<_> = vec!["mp3","mp4","wav","mov","pdf","txt","bash","sh"];
     let supported_types: Vec<_> = vec!["Audio","Video","Documents","Executables"];
-    let monitoring_dir: Directory = Directory::new(String::from("/home/shri/Documents/TICKETS"),vec![]);
+    let monitoring_dir: Directory = Directory::new(String::from("/home/shri/.gitbuilds/dirmon/test/test_directory/"),vec![]);
     let poll_delay: Duration = Duration::from_secs(1);
     let mut watcher = notify::PollWatcher::new(tx,
         notify::Config::default()
-        .with_poll_interval(poll_delay))?;
+        .with_poll_interval(poll_delay)
+        )?;
 
     // let mut terminal = ratatui::init();
     // let mut app  = App::new(monitoring_dir);
@@ -65,7 +66,6 @@ fn main() ->notify::Result<()>{
             match res {
                 Ok(event) => {
                     //directory creation pass 
-                    println!("{:?}",event);
                    let files_list: Vec<Box<File>> = get_files(&monitoring_dir).unwrap_or(vec![]);
                     
                    if files_list.len() <= 0 {
