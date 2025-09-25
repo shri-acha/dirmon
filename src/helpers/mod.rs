@@ -2,8 +2,6 @@ use std::{path::{self,PathBuf},fmt::{self,write},io,fs::{self}};
 use std::collections::{HashMap,HashSet};
 use std::hash::Hash;
 
-
-
 #[derive(Debug,Clone)]
 pub struct File {
     pub f_path: path::PathBuf,
@@ -127,14 +125,23 @@ pub fn move_files(monitoring_dir: &Directory,files_list: &Vec<Box<File>>)->Resul
 
             }
             else{
-                    println!("{:?} missing directory or file already exists!",u_path);
+                    //println!("{:?} missing directory or file already exists!",u_path);
                 }
             }
         }
         return Err("internal error, no type exists for supported extension!".to_string());
 }
 
-pub fn check_and_write_dir(monitoring_dir:&Directory ,u_extensions: &HashSet<String>)->Result<String,String>{
+pub fn check_and_write_dir(monitoring_dir:&Directory,files_list: &Vec<Box<File>>,supported_extensions: &Vec<&str>)->io::Result<String>{
+
+   let mut u_extensions: HashSet<String> = HashSet::new();
+    for file in files_list {
+        // println!("{:?}",file.f_extension);
+        if supported_extensions.contains(&file.f_extension.as_str()){
+           u_extensions.insert(file.f_extension.clone());
+       }
+    }
+
     for extension in u_extensions.iter(){
 
         let dir_name = get_type_for_extension(extension);
@@ -149,7 +156,8 @@ pub fn check_and_write_dir(monitoring_dir:&Directory ,u_extensions: &HashSet<Str
                     return Ok(format!("{:?} created!",u_path));
                 }else{
                     println!("{:?} creation failed!",u_path);
-                } }
+                } 
+            }
             else{
                  println!("{:?} already exists!",u_path);
             }
@@ -157,6 +165,5 @@ pub fn check_and_write_dir(monitoring_dir:&Directory ,u_extensions: &HashSet<Str
             println!("{:?} extension type not supported!",dir_name);
         }
     }
-    return Err(format!("no files in directory!"));
+    return Err(io::Error::other("no files in directory!"));
 }
-
