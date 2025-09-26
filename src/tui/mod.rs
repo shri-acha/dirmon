@@ -164,6 +164,23 @@ impl App {
         self.file_dir_map.insert(self.dir_buffer.clone(),transformed_buffer);
     }
 
+    fn new(monitoring_dir: String,
+             dir_buffer: String,
+             ext_buffer: String,
+             file_dir_map: BTreeMap<String,Vec<String>>,
+             focused_field:FocusedField,
+             exit:bool)->Self
+    {
+        Self{
+            monitoring_dir,
+            dir_buffer,
+            ext_buffer,
+            file_dir_map,
+            focused_field,
+            exit,
+        }
+     }
+
 }
 
 impl Widget for &mut App {
