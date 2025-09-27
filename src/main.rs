@@ -2,9 +2,8 @@
 mod helpers;
 mod tui;
 use helpers::*;
-use std::collections::{HashMap,HashSet};
+use std::collections::{BTreeMap,HashSet};
 use std::{path::{self},fmt::{self,write},io::{self},fs};
-use std::thread;
 use std::time::Duration;
 use fs_extra::file;
 use notify::{self,Watcher};
@@ -15,17 +14,20 @@ use std::sync::Arc;
 
 
 
-fn main(){
+fn main()->notify::Result<()>{
 
         let (tx, rx) = mpsc::channel::<notify::Result<notify::Event>>();
 
-        let supported_extensions: Vec<_> = vec!["mp3","mp4","wav","mov","pdf","txt","bash","sh"];
-        let supported_types: Vec<_> = vec!["Audio","Video","Documents","Executables"];
+;
 
-        let file_dir_map_buf BTreeMap<String,Vec<String>> =BTreeMap::from([("Audio".to_string(),vec!["mp3".to_string()])]) 
+        let file_dir_map_buf : BTreeMap<String,Vec<String>> =BTreeMap::from([
+            ("Audio".to_string(),vec!["mp3".to_string()])
+            ]);
 
 
-        let monitoring_dir: Directory = Directory::new(String::from("/home/shri/.gitbuilds/dirmon/test/test_directory/"),vec![]);
+        let monitoring_dir: Directory = Directory::new(
+            String::from("/home/shri/.gitbuilds/dirmon/test/test_directory/"),vec![]
+            );
         let poll_delay: Duration = Duration::from_secs(1);
 
 
@@ -36,12 +38,16 @@ fn main(){
         // focused_field,
         // exit,
 
-        let mut app = Arc::new(App::new(monitoring_dir.d_path,
+        let mut app = Arc::new(
+            App::new(monitoring_dir,
                 "".to_string(),
                 "".to_string(),
                 file_dir_map_buf,
-                FocusedField::Directory);
+                FocusedField::Directory,
+                true,
+                ));
 
+        let (supported_extensions,supported_types): (Vec<String>,Vec<String>) = get_spprtd_extns_and_type(&self.file_dir_map);
 
     thread::spawn(move||{
 
@@ -51,14 +57,13 @@ fn main(){
             let _ = app.run(&mut terminal);
         }
     ratatui::restore(); 
-    })
-
-         
+    });
+ 
         
-        let mut watcher = notify::PollWatcher::new(tx,
-             notify::Config::default()
-             .with_poll_interval(poll_delay)
-             )?;
+    let mut watcher = notify::PollWatcher::new(tx,
+         notify::Config::default()
+         .with_poll_interval(poll_delay)
+         )?;
         
        
      
@@ -91,4 +96,3 @@ fn main(){
         }
         return Ok(())
 }
-

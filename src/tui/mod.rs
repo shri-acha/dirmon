@@ -13,6 +13,8 @@ use ratatui::{self,
     };
 use std::collections::BTreeMap;
 use std::io;
+use crate::Directory;
+use crate::File;
 
 
 pub enum FocusedField{
@@ -25,7 +27,7 @@ pub enum FocusedField{
 
 pub struct App {
 
-    pub monitoring_dir: String,
+    pub monitoring_dir: Directory,
     pub dir_buffer: String,
     pub ext_buffer: String,
     pub file_dir_map:  BTreeMap<String,Vec<String>>,
@@ -98,10 +100,10 @@ impl App {
             FocusedField::Directory => {
                 match key_code{
                     crossterm::event::KeyCode::Char(c)=>{
-                        self.monitoring_dir = format!("{}{}",self.monitoring_dir,c);
+                        self.monitoring_dir.d_path = format!("{}{}",self.monitoring_dir.d_path,c);
                     }
                     crossterm::event::KeyCode::Backspace=> {
-                        self.monitoring_dir.pop();
+                        self.monitoring_dir.d_path.pop();
                     }
                     _=>{ 
                         //Don't require any more bindings (as of now)
@@ -164,7 +166,8 @@ impl App {
         self.file_dir_map.insert(self.dir_buffer.clone(),transformed_buffer);
     }
 
-    fn new(monitoring_dir: String,
+    pub fn new(
+        monitoring_dir: Directory,
              dir_buffer: String,
              ext_buffer: String,
              file_dir_map: BTreeMap<String,Vec<String>>,
@@ -246,7 +249,7 @@ impl Widget for &mut App {
 
 
         // monitoring-dir 
-        let monitoring_dir= Paragraph::new(self.monitoring_dir.clone())
+        let monitoring_dir= Paragraph::new(self.monitoring_dir.d_path.clone())
             .block(Block::new()
                 .borders(ratatui::widgets::Borders::ALL)
                 .border_type(monitoring_dir_field_border_focus)
@@ -358,7 +361,7 @@ impl Widget for &mut App {
 impl Default for App {
     fn default()->Self{
         Self{
-            monitoring_dir: "/".to_string(),
+            monitoring_dir: Directory::new("/".to_string(),vec![]),
             dir_buffer:"".to_string(),
             ext_buffer:"".to_string(),
 

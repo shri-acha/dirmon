@@ -14,7 +14,10 @@ impl File{
 
         let f_path = PathBuf::from(f_path);
         let f_name = f_path.file_name().unwrap().to_str().unwrap_or("").to_string();
-        let f_extension = get_file_extension(&f_name).unwrap_or("".to_string());
+        let f_extension = path.extension() 
+                    .and_then(|os_string| os_string.to_str())
+                      .map(|s| s.to_string())
+                      .unwrap_or_default();
 
         Self{
             f_path,
@@ -58,20 +61,11 @@ impl Directory {
 }
 
 
-fn get_file_extension(file_name: &String)->Option<String>{
-
-    let mut vec_buf: Vec<String> = vec![];
-    for split_str in file_name.split('.'){
-        let split_str = String::from(split_str);
-        vec_buf.push(split_str);
-    }
-
-    vec_buf.get(1).cloned()
-}
 
 pub fn get_files(dir: &Directory)->io::Result<Vec<Box<File>>>{
 
     let mut files: Vec<Box<File>> = vec![];
+
     if dir.d_path.is_dir(){
         if let Ok(d_path) = dir.d_path
                                 .read_dir(){
@@ -166,4 +160,22 @@ pub fn check_and_write_dir(monitoring_dir:&Directory,files_list: &Vec<Box<File>>
         }
     }
     return Err(io::Error::other("no files in directory!"));
+}
+
+pub fn get_spprtd_extns_and_type(file_dir_map :&BTreeMap<String,Vec<String>)->(Vec<String>,Vec<String>)
+{
+
+
+    let type_list: Vec<&str> = file_dir_map
+        .iter()
+        .map(|(k,_)| k.clone())
+        .collect::<Vec<_>>();
+
+    let extn_list: HashSet<&str> = file_dir_map
+        .iter()
+        .flat_map(|(_,v)| {
+            v.clone()
+        }).collect();
+
+    return (type_list,extn_list);
 }
