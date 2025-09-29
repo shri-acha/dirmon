@@ -9,22 +9,34 @@ use notify::{self,Watcher};
 use std::sync::mpsc;
 use std::thread::{self};
 use std::sync::Arc;
+use configparser::ini::Ini;
 
 
 
 fn main()->notify::Result<()>{
 
         let (tx, rx) = mpsc::channel::<notify::Result<notify::Event>>();
+        let mut config_raw  = Ini::new_cs(); 
 
-        let file_dir_map_buf : BTreeMap<&str,Vec<&str>> =BTreeMap::from([
-            ("Documents",vec!["txt","pdf"]),
-            ("Video",vec!["mov","mp4"]),
-            ("Audio",vec!["wav","mp3"]),
-            ]);
+        let mut monitoring_dir: Directory = Directory::default();
 
-        let (supported_extensions,supported_types) = get_spprtd_extns_and_type(&file_dir_map_buf);
+        let mut file_dir_map : BTreeMap<String,Vec<String>> =BTreeMap::new();
 
-        let monitoring_dir: Directory = Directory::new(
+        if let Ok(config_loaded) = config_raw.load("test/test-conf-00.conf"){
+            for (monitoring_dir_buf,file_dir_map_buf) in config_loaded {
+                monitoring_dir = Directory::from(monitoring_dir_buf,vec![]);
+                for (type_value,extns) in file_dir_map_buf {
+                    if let Some(extns) = extns{
+                        println!("{:?}",extns);
+                        file_dir_map.insert(type_value,extns.split(',').map(|e| e.to_string()).collect());
+                    }
+                }
+            }
+        }
+
+        let (supported_extensions,supported_types) = get_spprtd_extns_and_type(&file_dir_map);
+
+        let monitoring_dir: Directory = Directory::from(
             String::from("/home/shri/.gitbuilds/dirmon/test/test_directory"),
             vec![], // initial state of empty directory
         );
@@ -45,8 +57,8 @@ fn main()->notify::Result<()>{
        let files_list: Vec<Box<File>> = get_files(&monitoring_dir).unwrap_or(vec![]);
         
         // initialization
-        let _ = check_and_write_dir(&file_dir_map_buf,&monitoring_dir,&files_list,&supported_extensions);
-        let _ = move_files(&file_dir_map_buf,&monitoring_dir,&files_list);
+        let _ = check_and_write_dir(&file_dir_map,&monitoring_dir,&files_list,&supported_extensions);
+        let _ = move_files(&file_dir_map,&monitoring_dir,&files_list);
 
         for res in rx {
             match res {
@@ -58,7 +70,7 @@ fn main()->notify::Result<()>{
                    }else {
 
                         if let Ok(_)  = check_and_write_dir(
-                            &file_dir_map_buf,
+                            &file_dir_map,
                             &monitoring_dir,
                             &files_list,
                             &supported_extensions)
@@ -67,7 +79,7 @@ fn main()->notify::Result<()>{
                         }else {
                             println!("error modifying directory!");
                         }
-                        if let Ok(_) = move_files(&file_dir_map_buf,&monitoring_dir,&files_list){
+                        if let Ok(_) = move_files(&file_dir_map,&monitoring_dir,&files_list){
                             println!("files moved!");
                         }else {
                             println!("error moving files!");

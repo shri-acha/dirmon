@@ -45,9 +45,18 @@ pub struct Directory{
     pub d_files :Vec<File>, 
 }
 
+impl Default for Directory {
+    fn default()->Self{
+        Self{
+            d_path: Box::new(PathBuf::from("")),
+            d_files: vec![],
+        }
+    }
+}
+
 impl Directory {
 
-    pub fn new(d_path: String,d_files: Vec<File>)->Self{
+    pub fn from(d_path: String,d_files: Vec<File>)->Self{
         Self{
             d_path:Box::new(PathBuf::from(d_path)),
             d_files:d_files,
@@ -78,10 +87,10 @@ pub fn get_files(dir: &Directory)->io::Result<Vec<Box<File>>>{
     Ok(files)
 }
 
-pub fn get_type_for_extension(file_dir_map: &BTreeMap<&str,Vec<&str>>,extension: &str)->Option<String>{
+pub fn get_type_for_extension(file_dir_map: &BTreeMap<String,Vec<String>>,extension: &String )->Option<String>{
  
     for (key,val) in file_dir_map {
-            if val.contains(&extension){
+            if val.contains(extension){
                 return Some(key.to_string());
             }
     }
@@ -89,7 +98,7 @@ pub fn get_type_for_extension(file_dir_map: &BTreeMap<&str,Vec<&str>>,extension:
 
 }
 
-pub fn move_files(file_dir_map: &BTreeMap<&str,Vec<&str>>,monitoring_dir: &Directory,files_list: &Vec<Box<File>>)->Result<String,String> {
+pub fn move_files(file_dir_map: &BTreeMap<String,Vec<String>>,monitoring_dir: &Directory,files_list: &Vec<Box<File>>)->Result<String,String> {
 
     for file in files_list{
         if let Some(dir_name) = get_type_for_extension(file_dir_map,&file.f_extension){
@@ -118,7 +127,7 @@ pub fn move_files(file_dir_map: &BTreeMap<&str,Vec<&str>>,monitoring_dir: &Direc
 }
 
 pub fn check_and_write_dir(
-    file_dir_map: &BTreeMap<&str,Vec<&str>>,
+    file_dir_map: &BTreeMap<String,Vec<String>>,
     monitoring_dir:&Directory,files_list: &Vec<Box<File>>,
     supported_extensions: &HashSet<String>
     )->io::Result<String>{
@@ -158,7 +167,7 @@ pub fn check_and_write_dir(
     return Err(io::Error::other("no files in directory!"));
 }
 
-pub fn get_spprtd_extns_and_type(file_dir_map : &BTreeMap<&str,Vec<&str>>)->(HashSet<String>,Vec<String>)
+pub fn get_spprtd_extns_and_type(file_dir_map : &BTreeMap<String,Vec<String>>)->(HashSet<String>,Vec<String>)
 {
 
 

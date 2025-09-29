@@ -7,4 +7,5 @@
 > simple monitoring of the directories must be done (x)
 > fix lagging log consumer problem (x)
 > simple tui ( monitoring_dir, extensions, types, polling rate)  (x)
-> config ( monitoring_dir, extensions, types, polling rate)     ()
+> config ( monitoring_dir, extensions, types, polling rate)     (x)
+> multi-file monitoring support ()
