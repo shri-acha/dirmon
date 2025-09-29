@@ -7,4 +7,4 @@
 > simple monitoring of the directories must be done (x)
 > fix lagging log consumer problem (x)
 > simple tui ( monitoring_dir, extensions, types, polling rate)  (x)
-> config ( monitoring_dir, extensions, types, polling rate)     ()
+> refactor code for tui with App data for instanceful data () 
