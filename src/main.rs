@@ -10,10 +10,11 @@ use std::sync::mpsc;
 use std::thread::{self};
 use std::sync::Arc;
 use configparser::ini::Ini;
-
-
+use log::{debug, error, info};
 
 fn main()->notify::Result<()>{
+
+        env_logger::init();
 
         let (tx, rx) = mpsc::channel::<notify::Result<notify::Event>>();
         let mut config_raw  = Ini::new_cs(); 
@@ -31,20 +32,20 @@ fn main()->notify::Result<()>{
                         file_dir_map.insert(type_value,extns.split(',').map(|e| e.to_string()).collect());
                     }else {
 
-                        println!("[WARNING] missing values for {:?}",type_value);
+                        info!("[WARNING] missing values for {:?}",type_value);
                     }
                 }
             }
         }else{
-                        println!("[ERROR] error in reading config");
+                        error!("[ERROR] error in reading config");
         }
 
         let (supported_extensions,supported_types) = get_spprtd_extns_and_type(&file_dir_map);
 
         let poll_delay: Duration = Duration::from_secs(1);
 
-        println!("listening on {:?}",monitoring_dir);
-        println!("supported_types: {:?}\nsupported_extensions: {:?}",supported_extensions, supported_types); 
+        info!("listening on {:?}",monitoring_dir);
+        info!("supported_types: {:?}\nsupported_extensions: {:?}",supported_extensions, supported_types); 
         
     let mut watcher = notify::PollWatcher::new(tx,
          notify::Config::default()
@@ -74,6 +75,8 @@ fn main()->notify::Result<()>{
                        continue;
                    }else {
 
+                       let files_list: Vec<Box<File>> = get_files(&monitoring_dir).unwrap_or(vec![]);
+
                        match check_and_write_dir(
                             &file_dir_map,
                             &monitoring_dir,
@@ -81,11 +84,11 @@ fn main()->notify::Result<()>{
                             &supported_extensions) {
 
                            Ok(_) => {
-                            println!("directory modified!");
+                            debug!("directory modified!");
                            }
                             Err(e)=>{
-                            println!("error modifying directory!: {}",e);
-                            println!("[STATE]:\t{:?}{:?}{:?}{:?}",
+                            error!("error modifying directory!: {}",e);
+                            error!("[STATE]:\t{:?}{:?}{:?}{:?}",
                             &file_dir_map,
                             &monitoring_dir,
                             &files_list,
@@ -93,13 +96,13 @@ fn main()->notify::Result<()>{
                         }
                        }
 
-                        if let Ok(_) = move_files(&file_dir_map,&monitoring_dir,&files_list){
-                            println!("files moved!");
+                        if let Some(m) = move_files(&file_dir_map,&monitoring_dir,&files_list){
+                            debug!("{}",m);
                         }else {
-                            println!("error moving files!");
+                            error!("error moving files!");
                         }
                         count+=1;
-                        println!("[COUNT]: {}\nEvent:{:?}",count,event);
+                        debug!("[COUNT]: {}\nEvent:{:?}",count,event);
            }
                 },
                 Err(e) => return Err(e),

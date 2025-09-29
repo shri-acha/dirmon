@@ -1,6 +1,7 @@
 use std::{path::{self,PathBuf},fmt::{self,write},io,fs::{self}};
 use std::collections::{HashSet,BTreeMap};
 use std::hash::Hash;
+use log::{error,info,debug};
 
 #[derive(Debug,Clone)]
 pub struct File {
@@ -100,7 +101,8 @@ pub fn get_type_for_extension(file_dir_map: &BTreeMap<String,Vec<String>>,extens
 }
 
 /// moves the desired file into their corresponding directory(Type)
-pub fn move_files(file_dir_map: &BTreeMap<String,Vec<String>>,monitoring_dir: &Directory,files_list: &Vec<Box<File>>)->Result<String,String> {
+pub fn move_files(file_dir_map: &BTreeMap<String,Vec<String>>,
+    monitoring_dir: &Directory,files_list: &Vec<Box<File>>)->Option<String> {
 
     for file in files_list{
         if let Some(dir_name) = get_type_for_extension(file_dir_map,&file.f_extension){
@@ -125,7 +127,7 @@ pub fn move_files(file_dir_map: &BTreeMap<String,Vec<String>>,monitoring_dir: &D
                 }
             }
         }
-        return Err("internal error, no type exists for supported extension!".to_string());
+        return Some("all files scanned successfully!".to_string());
 }
 
 /// checks for the desired extension of files and creates the corresponding parent sub-directory
@@ -144,8 +146,9 @@ pub fn check_and_write_dir(
            u_extensions.insert(file.f_extension.clone());
        }
     }
+    
     if u_extensions.len() <= 0 {
-     println!("[DEBUG] directory empty");
+     debug!("directory empty"); 
     }
     else {
     for extension in u_extensions.iter(){
@@ -157,6 +160,7 @@ pub fn check_and_write_dir(
 
             let u_path = monitoring_dir.d_path.join(dir_name);
             if !u_path.exists(){
+                println!("{:?} source path exists!",u_path);
 
                 if let Ok(_) = fs::create_dir(&u_path){
                     println!("{:?} created!",u_path);
