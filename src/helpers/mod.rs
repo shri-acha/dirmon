@@ -1,5 +1,5 @@
 use std::{path::{self,PathBuf},fmt::{self,write},io,fs::{self}};
-use std::collections::{HashMap,HashSet};
+use std::collections::{HashMap,HashSet,BTreeMap};
 use std::hash::Hash;
 
 #[derive(Debug,Clone)]
@@ -14,10 +14,10 @@ impl File{
 
         let f_path = PathBuf::from(f_path);
         let f_name = f_path.file_name().unwrap().to_str().unwrap_or("").to_string();
-        let f_extension = path.extension() 
-                    .and_then(|os_string| os_string.to_str())
-                      .map(|s| s.to_string())
-                      .unwrap_or_default();
+        let f_extension = f_path.extension() 
+                        .and_then(|os_string| os_string.to_str())
+                          .map(|s| s.to_string())
+                          .unwrap_or_default();
 
         Self{
             f_path,
@@ -60,8 +60,6 @@ impl Directory {
     }
 }
 
-
-
 pub fn get_files(dir: &Directory)->io::Result<Vec<Box<File>>>{
 
     let mut files: Vec<Box<File>> = vec![];
@@ -80,14 +78,14 @@ pub fn get_files(dir: &Directory)->io::Result<Vec<Box<File>>>{
     Ok(files)
 }
 
-pub fn get_type_for_extension(extension: &str)->Option<String>{
+pub fn get_type_for_extension(extension: &str, file_choice: HashMap<&str,Vec<&str>>)->Option<String>{
 
     let file_choice: HashMap<&str,Vec<&str>> = HashMap::from([
-        ("Audio",vec!["mp3","wav"]),
+        ("Audio",vec!["mp3","wav"]), 
         ("Videos",vec!["mp4","mov"]),
         ("Documents",vec!["pdf","txt"]),
         ("Executables",vec!["sh","bash"]),
-    ]);
+    ]); // file_dir_map_buf
     
     for (key,val) in file_choice {
             if val.contains(&extension){
@@ -99,13 +97,14 @@ pub fn get_type_for_extension(extension: &str)->Option<String>{
 }
 
 pub fn move_files(monitoring_dir: &Directory,files_list: &Vec<Box<File>>)->Result<String,String> {
+
     for file in files_list{
         if let Some(dir_name) = get_type_for_extension(&file.f_extension){
         let u_path = monitoring_dir.d_path.join(dir_name);
         let d_path = u_path.join(file.f_name.clone());
         let s_path = &file.f_path;
 
-            if u_path.exists() {
+            if s_path.exists() {
                 if !d_path.exists() {
                     if let Ok(size) =  fs_extra::file::move_file(s_path,&d_path,
                         &fs_extra::file::CopyOptions::new()){
@@ -116,22 +115,22 @@ pub fn move_files(monitoring_dir: &Directory,files_list: &Vec<Box<File>>)->Resul
                 }else {
                         println!("file already exists in the destination!");
                 }
-
             }
             else{
-                    //println!("{:?} missing directory or file already exists!",u_path);
+                    println!("{:?} destination directory doesn't exist!",u_path);
                 }
             }
         }
         return Err("internal error, no type exists for supported extension!".to_string());
 }
 
-pub fn check_and_write_dir(monitoring_dir:&Directory,files_list: &Vec<Box<File>>,supported_extensions: &Vec<&str>)->io::Result<String>{
+pub fn check_and_write_dir(monitoring_dir:&Directory,files_list: &Vec<Box<File>>,supported_extensions: &HashSet<String>)->io::Result<String>{
 
+    println!("called!");
    let mut u_extensions: HashSet<String> = HashSet::new();
     for file in files_list {
-        // println!("{:?}",file.f_extension);
-        if supported_extensions.contains(&file.f_extension.as_str()){
+        println!("{:?}{:?}",file.f_extension, supported_extensions);
+        if supported_extensions.contains(&file.f_extension){
            u_extensions.insert(file.f_extension.clone());
        }
     }
@@ -139,6 +138,7 @@ pub fn check_and_write_dir(monitoring_dir:&Directory,files_list: &Vec<Box<File>>
     for extension in u_extensions.iter(){
 
         let dir_name = get_type_for_extension(extension);
+        println!("{:?}",dir_name);
 
         if let Some(dir_name) = dir_name {
 
@@ -162,20 +162,20 @@ pub fn check_and_write_dir(monitoring_dir:&Directory,files_list: &Vec<Box<File>>
     return Err(io::Error::other("no files in directory!"));
 }
 
-pub fn get_spprtd_extns_and_type(file_dir_map :&BTreeMap<String,Vec<String>)->(Vec<String>,Vec<String>)
+pub fn get_spprtd_extns_and_type(file_dir_map : &BTreeMap<String,Vec<String>>)->(HashSet<String>,Vec<String>)
 {
 
 
-    let type_list: Vec<&str> = file_dir_map
+    let type_list: Vec<String> = file_dir_map
         .iter()
         .map(|(k,_)| k.clone())
         .collect::<Vec<_>>();
 
-    let extn_list: HashSet<&str> = file_dir_map
+    let extn_list: HashSet<String> = file_dir_map
         .iter()
         .flat_map(|(_,v)| {
             v.clone()
         }).collect();
 
-    return (type_list,extn_list);
+    return (extn_list,type_list,);
 }
