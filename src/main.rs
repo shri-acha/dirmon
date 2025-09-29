@@ -27,19 +27,19 @@ fn main()->notify::Result<()>{
                 monitoring_dir = Directory::from(monitoring_dir_buf,vec![]);
                 for (type_value,extns) in file_dir_map_buf {
                     if let Some(extns) = extns{
-                        println!("{:?}",extns);
+                        // println!("{:?}",extns);
                         file_dir_map.insert(type_value,extns.split(',').map(|e| e.to_string()).collect());
+                    }else {
+
+                        println!("[WARNING] missing values for {:?}",type_value);
                     }
                 }
             }
+        }else{
+                        println!("[ERROR] error in reading config");
         }
 
         let (supported_extensions,supported_types) = get_spprtd_extns_and_type(&file_dir_map);
-
-        let monitoring_dir: Directory = Directory::from(
-            String::from("/home/shri/.gitbuilds/dirmon/test/test_directory"),
-            vec![], // initial state of empty directory
-        );
 
         let poll_delay: Duration = Duration::from_secs(1);
 
@@ -57,7 +57,12 @@ fn main()->notify::Result<()>{
        let files_list: Vec<Box<File>> = get_files(&monitoring_dir).unwrap_or(vec![]);
         
         // initialization
-        let _ = check_and_write_dir(&file_dir_map,&monitoring_dir,&files_list,&supported_extensions);
+        let _ = check_and_write_dir(
+            &file_dir_map,
+            &monitoring_dir,
+            &files_list,
+            &supported_extensions);
+
         let _ = move_files(&file_dir_map,&monitoring_dir,&files_list);
 
         for res in rx {
@@ -69,16 +74,25 @@ fn main()->notify::Result<()>{
                        continue;
                    }else {
 
-                        if let Ok(_)  = check_and_write_dir(
+                       match check_and_write_dir(
                             &file_dir_map,
                             &monitoring_dir,
                             &files_list,
-                            &supported_extensions)
-                        {
+                            &supported_extensions) {
+
+                           Ok(_) => {
                             println!("directory modified!");
-                        }else {
-                            println!("error modifying directory!");
+                           }
+                            Err(e)=>{
+                            println!("error modifying directory!: {}",e);
+                            println!("[STATE]:\t{:?}{:?}{:?}{:?}",
+                            &file_dir_map,
+                            &monitoring_dir,
+                            &files_list,
+                            &supported_extensions);
                         }
+                       }
+
                         if let Ok(_) = move_files(&file_dir_map,&monitoring_dir,&files_list){
                             println!("files moved!");
                         }else {
@@ -91,5 +105,5 @@ fn main()->notify::Result<()>{
                 Err(e) => return Err(e),
             }
         }
-        return Ok(())
+        Ok(())
 }

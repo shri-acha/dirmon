@@ -69,6 +69,7 @@ impl Directory {
     }
 }
 
+/// returns the list of files within the desired directory
 pub fn get_files(dir: &Directory)->io::Result<Vec<Box<File>>>{
 
     let mut files: Vec<Box<File>> = vec![];
@@ -86,7 +87,7 @@ pub fn get_files(dir: &Directory)->io::Result<Vec<Box<File>>>{
     }
     Ok(files)
 }
-
+/// maybe returns the type for the extension
 pub fn get_type_for_extension(file_dir_map: &BTreeMap<String,Vec<String>>,extension: &String )->Option<String>{
  
     for (key,val) in file_dir_map {
@@ -98,6 +99,7 @@ pub fn get_type_for_extension(file_dir_map: &BTreeMap<String,Vec<String>>,extens
 
 }
 
+/// moves the desired file into their corresponding directory(Type)
 pub fn move_files(file_dir_map: &BTreeMap<String,Vec<String>>,monitoring_dir: &Directory,files_list: &Vec<Box<File>>)->Result<String,String> {
 
     for file in files_list{
@@ -119,31 +121,37 @@ pub fn move_files(file_dir_map: &BTreeMap<String,Vec<String>>,monitoring_dir: &D
                 }
             }
             else{
-                    println!("{:?} destination directory doesn't exist!",u_path);
+                    println!("{:?} source directory doesn't exist!",s_path);
                 }
             }
         }
         return Err("internal error, no type exists for supported extension!".to_string());
 }
 
+/// checks for the desired extension of files and creates the corresponding parent sub-directory
 pub fn check_and_write_dir(
     file_dir_map: &BTreeMap<String,Vec<String>>,
     monitoring_dir:&Directory,files_list: &Vec<Box<File>>,
     supported_extensions: &HashSet<String>
-    )->io::Result<String>{
+    )->io::Result<String>{ 
 
    let mut u_extensions: HashSet<String> = HashSet::new();
+
+   // keeps a list of unique extensions that are also supported by the instance
     for file in files_list {
-        println!("{:?}{:?}",file.f_extension, supported_extensions);
+        // println!("{:?}{:?}",file.f_extension, supported_extensions); 
         if supported_extensions.contains(&file.f_extension){
            u_extensions.insert(file.f_extension.clone());
        }
     }
-
+    if u_extensions.len() <= 0 {
+     println!("[DEBUG] directory empty");
+    }
+    else {
     for extension in u_extensions.iter(){
 
         let dir_name = get_type_for_extension(file_dir_map,extension);
-        println!("{:?}",dir_name);
+        // println!("{:?}",dir_name);
 
         if let Some(dir_name) = dir_name {
 
@@ -152,21 +160,23 @@ pub fn check_and_write_dir(
 
                 if let Ok(_) = fs::create_dir(&u_path){
                     println!("{:?} created!",u_path);
-                    return Ok(format!("{:?} created!",u_path));
+                    return Ok(format!("{:?} created!",u_path)); // necessary log (necessary)
                 }else{
-                    println!("{:?} creation failed!",u_path);
+                    println!("{:?} creation failed!",u_path); // safe log (necessary)
                 } 
             }
             else{
-                 println!("{:?} already exists!",u_path);
+                 println!("{:?} already exists!",u_path); // floods log (unecessary)
             }
         }else{
-            println!("{:?} extension type not supported!",dir_name);
+            println!("{:?} extension type not supported!",dir_name); // floods log (only when a
+                                                                     // file type )
         }
     }
-    return Err(io::Error::other("no files in directory!"));
+    }
+    return Ok(String::from("[DEBUG] return"))
 }
-
+/// returns supported extensions and types from the source map  
 pub fn get_spprtd_extns_and_type(file_dir_map : &BTreeMap<String,Vec<String>>)->(HashSet<String>,Vec<String>)
 {
 
@@ -177,6 +187,7 @@ pub fn get_spprtd_extns_and_type(file_dir_map : &BTreeMap<String,Vec<String>>)->
         .collect::<Vec<_>>();
 
     let extn_list: HashSet<String> = file_dir_map
+
         .iter()
         .flat_map(|(_,v)| {
             v.clone()
