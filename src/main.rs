@@ -16,19 +16,20 @@ fn main()->notify::Result<()>{
 
         let (tx, rx) = mpsc::channel::<notify::Result<notify::Event>>();
 
-        let file_dir_map_buf : BTreeMap<String,Vec<String>> =BTreeMap::from([
-            ("Documents".to_string(),vec!["txt".to_string(),"pdf".to_string()]),
-            ("Video".to_string(),vec!["mov".to_string(),"mp4".to_string()]),
-            ("Audio".to_string(),vec!["wav".to_string(),"mp3".to_string()]),
+        let file_dir_map_buf : BTreeMap<&str,Vec<&str>> =BTreeMap::from([
+            ("Documents",vec!["txt","pdf"]),
+            ("Video",vec!["mov","mp4"]),
+            ("Audio",vec!["wav","mp3"]),
             ]);
 
         let (supported_extensions,supported_types) = get_spprtd_extns_and_type(&file_dir_map_buf);
 
         let monitoring_dir: Directory = Directory::new(
-            String::from("/home/shri/.gitbuilds/dirmon/test/test_directory"),vec![]
-            );
+            String::from("/home/shri/.gitbuilds/dirmon/test/test_directory"),
+            vec![], // initial state of empty directory
+        );
 
-        let poll_delay: Duration = Duration::from_secs(1); 
+        let poll_delay: Duration = Duration::from_secs(1);
 
         println!("listening on {:?}",monitoring_dir);
         println!("supported_types: {:?}\nsupported_extensions: {:?}",supported_extensions, supported_types); 
@@ -44,8 +45,8 @@ fn main()->notify::Result<()>{
        let files_list: Vec<Box<File>> = get_files(&monitoring_dir).unwrap_or(vec![]);
         
         // initialization
-        let _ = check_and_write_dir(&monitoring_dir,&files_list,&supported_extensions);
-        let _ = move_files(&monitoring_dir,&files_list);
+        let _ = check_and_write_dir(&file_dir_map_buf,&monitoring_dir,&files_list,&supported_extensions);
+        let _ = move_files(&file_dir_map_buf,&monitoring_dir,&files_list);
 
         for res in rx {
             match res {
@@ -57,6 +58,7 @@ fn main()->notify::Result<()>{
                    }else {
 
                         if let Ok(_)  = check_and_write_dir(
+                            &file_dir_map_buf,
                             &monitoring_dir,
                             &files_list,
                             &supported_extensions)
@@ -65,7 +67,7 @@ fn main()->notify::Result<()>{
                         }else {
                             println!("error modifying directory!");
                         }
-                        if let Ok(_) = move_files(&monitoring_dir,&files_list){
+                        if let Ok(_) = move_files(&file_dir_map_buf,&monitoring_dir,&files_list){
                             println!("files moved!");
                         }else {
                             println!("error moving files!");

@@ -1,5 +1,5 @@
 use std::{path::{self,PathBuf},fmt::{self,write},io,fs::{self}};
-use std::collections::{HashMap,HashSet,BTreeMap};
+use std::collections::{HashSet,BTreeMap};
 use std::hash::Hash;
 
 #[derive(Debug,Clone)]
@@ -78,16 +78,9 @@ pub fn get_files(dir: &Directory)->io::Result<Vec<Box<File>>>{
     Ok(files)
 }
 
-pub fn get_type_for_extension(extension: &str, file_choice: HashMap<&str,Vec<&str>>)->Option<String>{
-
-    let file_choice: HashMap<&str,Vec<&str>> = HashMap::from([
-        ("Audio",vec!["mp3","wav"]), 
-        ("Videos",vec!["mp4","mov"]),
-        ("Documents",vec!["pdf","txt"]),
-        ("Executables",vec!["sh","bash"]),
-    ]); // file_dir_map_buf
-    
-    for (key,val) in file_choice {
+pub fn get_type_for_extension(file_dir_map: &BTreeMap<&str,Vec<&str>>,extension: &str)->Option<String>{
+ 
+    for (key,val) in file_dir_map {
             if val.contains(&extension){
                 return Some(key.to_string());
             }
@@ -96,10 +89,10 @@ pub fn get_type_for_extension(extension: &str, file_choice: HashMap<&str,Vec<&st
 
 }
 
-pub fn move_files(monitoring_dir: &Directory,files_list: &Vec<Box<File>>)->Result<String,String> {
+pub fn move_files(file_dir_map: &BTreeMap<&str,Vec<&str>>,monitoring_dir: &Directory,files_list: &Vec<Box<File>>)->Result<String,String> {
 
     for file in files_list{
-        if let Some(dir_name) = get_type_for_extension(&file.f_extension){
+        if let Some(dir_name) = get_type_for_extension(file_dir_map,&file.f_extension){
         let u_path = monitoring_dir.d_path.join(dir_name);
         let d_path = u_path.join(file.f_name.clone());
         let s_path = &file.f_path;
@@ -124,9 +117,12 @@ pub fn move_files(monitoring_dir: &Directory,files_list: &Vec<Box<File>>)->Resul
         return Err("internal error, no type exists for supported extension!".to_string());
 }
 
-pub fn check_and_write_dir(monitoring_dir:&Directory,files_list: &Vec<Box<File>>,supported_extensions: &HashSet<String>)->io::Result<String>{
+pub fn check_and_write_dir(
+    file_dir_map: &BTreeMap<&str,Vec<&str>>,
+    monitoring_dir:&Directory,files_list: &Vec<Box<File>>,
+    supported_extensions: &HashSet<String>
+    )->io::Result<String>{
 
-    println!("called!");
    let mut u_extensions: HashSet<String> = HashSet::new();
     for file in files_list {
         println!("{:?}{:?}",file.f_extension, supported_extensions);
@@ -137,7 +133,7 @@ pub fn check_and_write_dir(monitoring_dir:&Directory,files_list: &Vec<Box<File>>
 
     for extension in u_extensions.iter(){
 
-        let dir_name = get_type_for_extension(extension);
+        let dir_name = get_type_for_extension(file_dir_map,extension);
         println!("{:?}",dir_name);
 
         if let Some(dir_name) = dir_name {
@@ -162,20 +158,22 @@ pub fn check_and_write_dir(monitoring_dir:&Directory,files_list: &Vec<Box<File>>
     return Err(io::Error::other("no files in directory!"));
 }
 
-pub fn get_spprtd_extns_and_type(file_dir_map : &BTreeMap<String,Vec<String>>)->(HashSet<String>,Vec<String>)
+pub fn get_spprtd_extns_and_type(file_dir_map : &BTreeMap<&str,Vec<&str>>)->(HashSet<String>,Vec<String>)
 {
 
 
     let type_list: Vec<String> = file_dir_map
         .iter()
-        .map(|(k,_)| k.clone())
+        .map(|(k,_)| k.to_string())
         .collect::<Vec<_>>();
 
     let extn_list: HashSet<String> = file_dir_map
         .iter()
         .flat_map(|(_,v)| {
             v.clone()
-        }).collect();
+        })
+        .map(|v|v.to_string())
+        .collect();
 
     return (extn_list,type_list,);
 }
