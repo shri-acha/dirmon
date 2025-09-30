@@ -14,6 +14,9 @@ use std::sync::Arc;
 use configparser::ini::Ini;
 use log::{debug, error, info};
 
+
+const CONFIG_FILE : &'static str= ".dirmon.conf";
+
 fn main()->notify::Result<()>{
 
         env_logger::init();
@@ -25,7 +28,7 @@ fn main()->notify::Result<()>{
 
         let mut file_dir_map : BTreeMap<String,Vec<String>> =BTreeMap::new();
 
-        if let Ok(config_loaded) = config_raw.load("test/test-conf-00.conf"){
+        if let Ok(config_loaded) = config_raw.load(CONFIG_FILE){
             for (monitoring_dir_buf,file_dir_map_buf) in config_loaded {
                 monitoring_dir = Directory::from(monitoring_dir_buf,vec![]);
                 for (type_value,extns) in file_dir_map_buf {
@@ -34,12 +37,13 @@ fn main()->notify::Result<()>{
                         file_dir_map.insert(type_value,extns.split(',').map(|e| e.to_string()).collect());
                     }else {
 
-                        info!("[WARNING] missing values for {:?}",type_value);
+                        info!("missing values for {:?}",type_value);
                     }
                 }
             }
         }else{
-                        error!("[ERROR] error in reading config");
+                        error!("error in reading config, missing config!");
+                        return Ok(());
         }
 
         let (supported_extensions,supported_types) = get_spprtd_extns_and_type(&file_dir_map);
