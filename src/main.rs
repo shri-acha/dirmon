@@ -70,6 +70,7 @@ fn main()->notify::Result<()>{
             match res {
                 Ok(event) => {
                     //directory creation pass 
+                   let files_list: Vec<Box<File>> = get_files(&monitoring_dir).unwrap_or(vec![]);
                     
                    if files_list.len() <= 0 {
                        continue;

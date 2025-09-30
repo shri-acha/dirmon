@@ -80,11 +80,16 @@ pub fn get_files(dir: &Directory)->io::Result<Vec<Box<File>>>{
                                 .read_dir(){
             for entry in d_path {
                 if let Ok(entry) = entry{
-                    let mut file_buf = Box::new(File::new(entry.path().to_str().unwrap().to_string(),));
-                    files.push(file_buf);
+                    if !entry.file_type()?.is_dir(){
+                        let mut file_buf = Box::new(File::new(entry.path().to_str().unwrap_or_default().to_string(),)); // breaks for unicode
+                        files.push(file_buf);
+                    }
                 }
             }
         }
+    }else {
+        error!("path configured to monitor is not a directory!");
+        return Err(io::Error::other("path configured to monitor is not a directory!"));
     }
     Ok(files)
 }
@@ -114,16 +119,16 @@ pub fn move_files(file_dir_map: &BTreeMap<String,Vec<String>>,
                 if !d_path.exists() {
                     if let Ok(size) =  fs_extra::file::move_file(s_path,&d_path,
                         &fs_extra::file::CopyOptions::new()){
-                        println!("successfully moved file! [{}] s:{:?}\td:{:?}",size,s_path,&d_path);
+                        debug!("successfully moved file! [{}] s:{:?}\td:{:?}",size,s_path,&d_path);
                     }else {
-                        println!("failed to move file! s:{:?}\td:{:?}",s_path,&d_path);
+                        debug!("failed to move file! s:{:?}\td:{:?}",s_path,&d_path);
                     }
                 }else {
-                        println!("file already exists in the destination!");
+                        info!("file already exists in the destination!");
                 }
             }
             else{
-                    println!("{:?} source directory doesn't exist!",s_path);
+                    error!("{:?} source directory doesn't exist!",s_path);
                 }
             }
         }
@@ -160,20 +165,20 @@ pub fn check_and_write_dir(
 
             let u_path = monitoring_dir.d_path.join(dir_name);
             if !u_path.exists(){
-                println!("{:?} source path exists!",u_path);
+                debug!("{:?} source path exists!",u_path);
 
                 if let Ok(_) = fs::create_dir(&u_path){
-                    println!("{:?} created!",u_path);
+                    debug!("{:?} created!",u_path);
                     return Ok(format!("{:?} created!",u_path)); // necessary log (necessary)
                 }else{
-                    println!("{:?} creation failed!",u_path); // safe log (necessary)
+                   error!("{:?} creation failed!",u_path); // safe log (necessary)
                 } 
             }
             else{
-                 println!("{:?} already exists!",u_path); // floods log (unecessary)
+                 info!("{:?} already exists!",u_path); // floods log (unecessary)
             }
         }else{
-            println!("{:?} extension type not supported!",dir_name); // floods log (only when a
+            error!("{:?} extension type not supported!",dir_name); // floods log (only when a
                                                                      // file type )
         }
     }
