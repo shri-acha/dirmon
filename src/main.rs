@@ -1,6 +1,8 @@
 // core
 mod helpers;
+mod components;
 use helpers::*;
+use components::*;
 use std::collections::{BTreeMap,HashSet};
 use std::{path::{self},fmt::{self,write},io::{self},fs};
 use std::time::Duration;
