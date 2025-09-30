@@ -1,3 +1,4 @@
 /target
 .env
 plan.md
+test/test_directory/*
