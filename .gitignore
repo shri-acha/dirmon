@@ -2,3 +2,4 @@
 .env
 plan.md
 test/test_directory/*
+.dirmon.conf
