@@ -3,7 +3,7 @@ use std::io::{self};
 use std::path::{PathBuf,self};
 use crate::fmt;
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Eq,Hash,PartialEq)]
 pub struct File {
     pub f_path: path::PathBuf,
     pub f_name: String,
@@ -40,7 +40,7 @@ impl fmt::Display for File{
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Eq,Hash,PartialEq)]
 pub struct Directory{
     pub d_path: Box<PathBuf>,
     pub d_files :Vec<File>, 

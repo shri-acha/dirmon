@@ -8,4 +8,4 @@
 > fix lagging log consumer problem (x)
 > simple tui ( monitoring_dir, extensions, types, polling rate)  (x)
 > config ( monitoring_dir, extensions, types, polling rate)     (x)
-> multi-file monitoring support ()
+> multi-file monitoring support (x)

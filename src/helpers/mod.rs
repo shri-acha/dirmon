@@ -143,3 +143,67 @@ pub fn get_spprtd_extns_and_type(file_dir_map : &BTreeMap<String,Vec<String>>)->
 
     return (extn_list,type_list,);
 }
+
+pub fn match_response(file_dir_map: &BTreeMap<String,Vec<String>>,
+    supported_extensions: &HashSet<String>,
+    res: &notify::Result<notify::Event>)->notify::Result<()>{
+            match res {
+                Ok(event) => {
+                if let notify::event::EventKind::Create(_) = &event.kind { // Create event occurs
+                                                                           // for every move and 
+                    let event_monitoring_directory_list: Vec<Directory> = event.paths
+                        .iter()
+                        .filter_map(|e|{
+                            match e.parent() {
+                                Some(parent_path) => {
+                                    Some(parent_path.display().to_string())
+                                }
+                                None =>{
+                                    error!("Path {:?} has no parent directory, skipping.", e);
+                                    None
+                                }
+                            }
+                        })
+                        .map(|e|Directory::from(e,vec![]))
+                        .collect();
+                    for event_monitoring_directory in event_monitoring_directory_list {
+                    let files_list = get_files(&event_monitoring_directory).unwrap_or_default();
+
+                    
+                   if files_list.is_empty() {
+                       continue;
+                   }else {
+
+                       match check_and_write_dir(
+                            &file_dir_map,
+                            &event_monitoring_directory,
+                            &files_list,
+                            &supported_extensions) {
+
+                            Ok(_) => {
+                                debug!("directory modified!");
+                           }
+                            Err(e)=>{
+                                error!("error modifying directory!: {}",e);
+                                error!("[STATE]:\t{:?}{:?}{:?}{:?}",
+                                &file_dir_map,
+                                &event_monitoring_directory,
+                                &files_list,
+                                &supported_extensions);
+                            }
+                       }
+
+                        if let Some(m) = move_files(&file_dir_map,&event_monitoring_directory,&files_list){
+                            debug!("{}",m);
+                        }else {
+                            error!("error moving files!");
+                        }
+                        debug!("Event:{:?}",event.paths);
+                        }
+                    }
+                }
+                Ok(())
+            },
+                Err(e) => return Err(e),
+        }
+}

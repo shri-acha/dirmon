@@ -3,7 +3,7 @@ mod helpers;
 mod components;
 use helpers::*;
 use components::*;
-use std::collections::{BTreeMap,HashSet};
+use std::collections::{BTreeMap,HashSet,HashMap};
 use std::{path::{self},fmt::{self,write},io::{self},fs};
 use std::time::Duration;
 use fs_extra::file;
@@ -27,11 +27,11 @@ fn main()->notify::Result<()>{
         let mut config_raw  = Ini::new_cs(); 
         
         let mut monitoring_dir_list : Vec<Directory> = vec![];
-        let mut file_dir_map_list : Vec<BTreeMap<String,Vec<String>>> = vec![];
+        let mut file_dir_map_list : HashMap<Directory,BTreeMap<String,Vec<String>>> = HashMap::new();
         
         let mut monitoring_dir: Directory = Directory::default();
 
-        let mut file_dir_map : BTreeMap<String,Vec<String>> =BTreeMap::new();
+        let mut file_dir_map : BTreeMap<String,Vec<String>> = BTreeMap::new();
 
         // loading config with error guards 
         if let Ok(config_loaded) = config_raw.load(CONFIG_FILE){
@@ -51,7 +51,7 @@ fn main()->notify::Result<()>{
 
                 }
                 monitoring_dir_list.push(monitoring_dir.clone());
-                file_dir_map_list.push(file_dir_map.clone());
+                file_dir_map_list.insert(monitoring_dir.clone(),file_dir_map.clone());
             }
         }else{
                         error!("error in reading config, missing config!");
@@ -63,9 +63,8 @@ fn main()->notify::Result<()>{
 
         let poll_delay: Duration = Duration::from_secs(POLL_DELAY_SECS);
 
-        info!("listening on {:?}",monitoring_dir);
-        info!("supported_types: {:?}\nsupported_extensions: {:?}",supported_extensions, supported_types); 
-        
+        info!("supported_types: {:?}\nsupported_extensions: {:?}",supported_types,supported_extensions); 
+        info!("file_dir_map_list: {:?}",file_dir_map_list);
     let mut watcher = notify::PollWatcher::new(tx,
          notify::Config::default()
          .with_poll_interval(poll_delay)
@@ -74,6 +73,7 @@ fn main()->notify::Result<()>{
 
         // spins a new watcher thread for each monitoring directory
         for monitoring_dir in monitoring_dir_list {
+        info!("listening on {:?}",monitoring_dir);
             watcher.watch(&monitoring_dir.d_path, notify::RecursiveMode::NonRecursive)?;
         }
 
@@ -90,13 +90,9 @@ fn main()->notify::Result<()>{
         let _ = move_files(&file_dir_map,&monitoring_dir,&files_list);
 
         for res in rx {
-
+            let file_dir_map : BTreeMap<String,Vec<String>>= BTreeMap::new();
             match res {
-                Ok(event) => {
-
-                if let notify::event::EventKind::Create(_) = &event.kind { // Create event occurs
-                                                                           // for every move and
-                    
+                Ok( ref event)=>{
                     let event_monitoring_directory_list: Vec<Directory> = event.paths
                         .iter()
                         .filter_map(|e|{
@@ -110,48 +106,17 @@ fn main()->notify::Result<()>{
                                 }
                             }
                         })
-                        .map(|e|Directory::from(e,vec![]))
+                    .map(|e|Directory::from(e,vec![]))
                         .collect();
+
                     for event_monitoring_directory in event_monitoring_directory_list {
-                    files_list = get_files(&event_monitoring_directory).unwrap_or_default();
-
-                    
-                   if files_list.is_empty() {
-                       continue;
-                   }else {
-
-                       match check_and_write_dir(
-                            &file_dir_map,
-                            &event_monitoring_directory,
-                            &files_list,
-                            &supported_extensions) {
-
-                            Ok(_) => {
-                                debug!("directory modified!");
-                           }
-                            Err(e)=>{
-                                error!("error modifying directory!: {}",e);
-                                error!("[STATE]:\t{:?}{:?}{:?}{:?}",
-                                &file_dir_map,
-                                &event_monitoring_directory,
-                                &files_list,
-                                &supported_extensions);
-                            }
-                       }
-
-                        if let Some(m) = move_files(&file_dir_map,&event_monitoring_directory,&files_list){
-                            debug!("{}",m);
-                        }else {
-                            error!("error moving files!");
-                        }
-                        debug!("Event:{:?}",event.paths);
-                    }
+                        match_response(file_dir_map_list.get(&event_monitoring_directory).unwrap(),&supported_extensions,&res); // have guards before hand, so shouldn't crash
                     }
                 }
-            },
-                Err(e) => return Err(e),
-            }
-        } 
-                    
+                Err(_)=>{
+                    todo!();
+                    }
+                }
+            } 
         Ok(())
 }
