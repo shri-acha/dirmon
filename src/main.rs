@@ -2,14 +2,14 @@
 mod helpers;
 mod components;
 use helpers::*;
-use components::*;
+use components::{Directory};
 use std::collections::{BTreeMap,HashSet,HashMap};
-use std::{path::{self},fmt::{self,write},io::{self},fs};
+use std::{path,fmt,io,fs};
 use std::time::Duration;
 use fs_extra::file;
 use notify::{self,Watcher};
 use std::sync::mpsc;
-use std::thread::{self};
+use std::thread;
 use std::sync::Arc;
 use configparser::ini::Ini;
 use log::{debug, error, info};
@@ -36,8 +36,11 @@ fn main()->notify::Result<()>{
         // loading config with error guards 
         if let Ok(config_loaded) = config_raw.load(CONFIG_FILE){
         // loaded config works by parsing keys and option<value>
+        //
+        // file_dir_map: <HEADER_NAME,Vec<Extensions>>
             for (monitoring_dir_buf,file_dir_map_buf) in config_loaded {
                 monitoring_dir = Directory::from(monitoring_dir_buf.clone(),vec![]);
+                // type_value (????) , extensions 
                 for (type_value,extns) in file_dir_map_buf {
 
                     if let Some(extns) = extns{
@@ -45,7 +48,6 @@ fn main()->notify::Result<()>{
                         // println!("{:?}",extns);
                         file_dir_map.insert(type_value,extns.split(',').map(|e| e.to_string()).collect());
                     }else {
-
                         info!("missing values for {:?}",type_value);
                     }
 
@@ -65,12 +67,14 @@ fn main()->notify::Result<()>{
 
         info!("supported_types: {:?}\nsupported_extensions: {:?}",supported_types,supported_extensions); 
         info!("file_dir_map_list: {:?}",file_dir_map_list);
+        
     let mut watcher = notify::PollWatcher::new(tx,
          notify::Config::default()
          .with_poll_interval(poll_delay)
          )?;
         
 
+        // Watcher instance creator
         // spins a new watcher thread for each monitoring directory
         for monitoring_dir in monitoring_dir_list {
         info!("listening on {:?}",monitoring_dir);
@@ -78,8 +82,10 @@ fn main()->notify::Result<()>{
         }
 
 
+        // runs for the start 
+        //
         // initialization
-       let mut files_list: Vec<Box<File>> = get_files(&monitoring_dir).unwrap_or(vec![]);
+       let files_list: Vec<Box<File>> = get_files(&monitoring_dir).unwrap_or(vec![]);
         
         let _ = check_and_write_dir(
             &file_dir_map,
@@ -89,10 +95,11 @@ fn main()->notify::Result<()>{
 
         let _ = move_files(&file_dir_map,&monitoring_dir,&files_list);
 
+        // ends here..
+
         for res in rx {
-            let file_dir_map : BTreeMap<String,Vec<String>>= BTreeMap::new();
-            match res {
-                Ok( ref event)=>{
+            match &res {
+                Ok(event)=>{
                     let event_monitoring_directory_list: Vec<Directory> = event.paths
                         .iter()
                         .filter_map(|e|{
@@ -110,7 +117,10 @@ fn main()->notify::Result<()>{
                         .collect();
 
                     for event_monitoring_directory in event_monitoring_directory_list {
-                        match_response(file_dir_map_list.get(&event_monitoring_directory).unwrap(),&supported_extensions,&res); // have guards before hand, so shouldn't crash
+                        if let Some(file_dir_map) = file_dir_map_list.get(&event_monitoring_directory) {
+                            // ????
+                            let _ = match_response(file_dir_map,&supported_extensions,&res); // have guards before hand, so shouldn't crash
+                        }
                     }
                 }
                 Err(_)=>{

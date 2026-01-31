@@ -1,9 +1,7 @@
 use crate::{Directory,File};
-use std::{path::{self,PathBuf},fmt::{self,write},io,fs::{self}};
+use std::{path::PathBuf,fmt,io,fs};
 use std::collections::{HashSet,BTreeMap};
-use std::hash::Hash;
 use log::{error,info,debug};
-use crate::components;
 
 
 /// returns the list of files within the desired directory
@@ -16,7 +14,7 @@ pub fn get_files(dir: &Directory)->io::Result<Vec<Box<File>>>{
             for entry in d_path {
                 if let Ok(entry) = entry{
                     if !entry.file_type()?.is_dir(){
-                        let mut file_buf = Box::new(File::new(entry.path().to_str().unwrap_or_default().to_string(),)); // breaks for unicode
+                        let file_buf = Box::new(File::new(entry.path().to_str().unwrap_or_default().to_string())); // breaks for unicode
                         files.push(file_buf);
                     }
                 }
@@ -38,7 +36,7 @@ pub fn get_type_for_extension(file_dir_map: &BTreeMap<String,Vec<String>>,extens
                 return Some(key.to_string());
             }
     }
-    return None;
+    None
 
 }
 
@@ -69,7 +67,7 @@ pub fn move_files(file_dir_map: &BTreeMap<String,Vec<String>>,
                 }
             }
         }
-        return Some("all files scanned successfully!".to_string());
+        Some("all files scanned successfully!".to_string())
 }
 
 /// checks for the desired extension of files and creates the corresponding parent sub-directory
@@ -120,7 +118,7 @@ pub fn check_and_write_dir(
         }
     }
     }
-    return Ok(String::from("[DEBUG] return"))
+    Ok(String::from("[DEBUG] return"))
 }
 /// returns supported extensions and types from the source map  
 pub fn get_spprtd_extns_and_type(file_dir_map : &BTreeMap<String,Vec<String>>)->(HashSet<String>,Vec<String>)
@@ -141,15 +139,14 @@ pub fn get_spprtd_extns_and_type(file_dir_map : &BTreeMap<String,Vec<String>>)->
         .map(|v|v.to_string())
         .collect();
 
-    return (extn_list,type_list,);
+    (extn_list,type_list)
 }
 
 pub fn match_response(file_dir_map: &BTreeMap<String,Vec<String>>,
     supported_extensions: &HashSet<String>,
     res: &notify::Result<notify::Event>)->notify::Result<()>{
-            match res {
-                Ok(event) => {
-                if let notify::event::EventKind::Create(_) = &event.kind { // Create event occurs
+                if let Ok(event) = res {
+                    if let notify::event::EventKind::Create(_) = &event.kind { // Create event occurs
                                                                            // for every move and 
                     let event_monitoring_directory_list: Vec<Directory> = event.paths
                         .iter()
@@ -175,10 +172,10 @@ pub fn match_response(file_dir_map: &BTreeMap<String,Vec<String>>,
                    }else {
 
                        match check_and_write_dir(
-                            &file_dir_map,
+                            file_dir_map,
                             &event_monitoring_directory,
                             &files_list,
-                            &supported_extensions) {
+                            supported_extensions) {
 
                             Ok(_) => {
                                 debug!("directory modified!");
@@ -186,14 +183,14 @@ pub fn match_response(file_dir_map: &BTreeMap<String,Vec<String>>,
                             Err(e)=>{
                                 error!("error modifying directory!: {}",e);
                                 error!("[STATE]:\t{:?}{:?}{:?}{:?}",
-                                &file_dir_map,
+                                file_dir_map,
                                 &event_monitoring_directory,
                                 &files_list,
-                                &supported_extensions);
+                                supported_extensions);
                             }
                        }
 
-                        if let Some(m) = move_files(&file_dir_map,&event_monitoring_directory,&files_list){
+                        if let Some(m) = move_files(file_dir_map,&event_monitoring_directory,&files_list){
                             debug!("{}",m);
                         }else {
                             error!("error moving files!");
@@ -202,8 +199,6 @@ pub fn match_response(file_dir_map: &BTreeMap<String,Vec<String>>,
                         }
                     }
                 }
+                }
                 Ok(())
-            },
-                Err(e) => return Err(e),
-        }
 }
