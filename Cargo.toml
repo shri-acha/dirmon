@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.102"
 color-eyre = "0.6.5"
 configparser = "3.1.0"
 crossterm = "0.29.0"
