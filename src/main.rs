@@ -1,7 +1,11 @@
 // core
 mod components;
 mod helpers;
-use crate::components::{Directory, File, channel::DirmonChannel};
+use crate::components::{
+    Directory, File,
+    channel::DirmonChannel,
+    watcher::{DirmonWatchMode, DirmonWatcher, DirmonWatcherConfig, Watchable},
+};
 use configparser::ini::Ini;
 use fs_extra::file;
 use helpers::*;
@@ -18,10 +22,11 @@ use std::{fmt, fs, io, path};
 const CONFIG_FILE: &'static str = ".dirmon.conf";
 const POLL_DELAY_SECS: u64 = 1;
 
-fn main() -> notify::Result<()> {
+fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     let dirmon_channel = DirmonChannel::channel();
+    let DirmonChannel{ Tx,Rx } = dirmon_channel;
     let mut config_raw = Ini::new_cs();
 
     let mut monitoring_dir_list: Vec<Directory> = vec![];
@@ -68,16 +73,13 @@ fn main() -> notify::Result<()> {
     );
     info!("file_dir_map_list: {:?}", file_dir_map_list);
 
-    let mut watcher = notify::PollWatcher::new(
-        dirmon_channel.Tx,
-        notify::Config::default().with_poll_interval(poll_delay),
-    )?;
+    let mut watcher = DirmonWatcher::from(Tx, DirmonWatcherConfig::default());
 
     // Watcher instance creator
     // spins a new watcher thread for each monitoring directory
     for monitoring_dir in monitoring_dir_list {
         info!("listening on {:?}", monitoring_dir);
-        watcher.watch(&monitoring_dir.d_path, notify::RecursiveMode::NonRecursive)?;
+        watcher.watch(&monitoring_dir, DirmonWatchMode::NonRecursive);
     }
 
     // runs for the start
@@ -96,7 +98,7 @@ fn main() -> notify::Result<()> {
 
     // ends here..
 
-    for res in dirmon_channel.Rx {
+    for res in Rx {
         match &res {
             Ok(event) => {
                 let event_monitoring_directory_list: Vec<Directory> = event
@@ -119,7 +121,8 @@ fn main() -> notify::Result<()> {
                     }
                 }
             }
-            Err(_) => {
+            Err(e) => {
+                error!("{}",e);
                 todo!();
             }
         }
