@@ -5,67 +5,26 @@ use crate::components::{
     Directory, File,
     channel::DirmonChannel,
     watcher::{DirmonWatchMode, DirmonWatcher, DirmonWatcherConfig, Watchable},
+    reactor::{DirmonReactor},
 };
-use configparser::ini::Ini;
-use fs_extra::file;
 use helpers::*;
-use log::{debug, error, info};
-use notify::{self, Watcher};
-use std::collections::{BTreeMap, HashMap, HashSet};
-use std::io::Error;
-use std::sync::Arc;
-use std::sync::mpsc;
-use std::thread;
+use log::{error, info};
+use notify::{self};
+use std::collections::{BTreeMap, HashMap};
 use std::time::Duration;
-use std::{fmt, fs, io, path};
+use std::{fmt};
 
 const CONFIG_FILE: &'static str = ".dirmon.conf";
-const POLL_DELAY_SECS: u64 = 1;
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     let dirmon_channel = DirmonChannel::channel();
-    let DirmonChannel{ Tx,Rx } = dirmon_channel;
-    let mut config_raw = Ini::new_cs();
-
-    let mut monitoring_dir_list: Vec<Directory> = vec![];
-    let mut file_dir_map_list: HashMap<Directory, BTreeMap<String, Vec<String>>> = HashMap::new();
-
+    let DirmonChannel{ tx,rx } = dirmon_channel;
     let mut monitoring_dir: Directory = Directory::default();
-
-    let mut file_dir_map: BTreeMap<String, Vec<String>> = BTreeMap::new();
-
-    // loading config with error guards
-    if let Ok(config_loaded) = config_raw.load(CONFIG_FILE) {
-        // loaded config works by parsing keys and option<value>
-        //
-        // file_dir_map: <HEADER_NAME,Vec<Extensions>>
-        for (monitoring_dir_buf, file_dir_map_buf) in config_loaded {
-            monitoring_dir = Directory::from(monitoring_dir_buf.clone(), vec![]);
-            // type_value (????) , extensions
-            for (type_value, extns) in file_dir_map_buf {
-                if let Some(extns) = extns {
-                    // println!("{:?}",extns);
-                    file_dir_map.insert(
-                        type_value,
-                        extns.split(',').map(|e| e.to_string()).collect(),
-                    );
-                } else {
-                    info!("missing values for {:?}", type_value);
-                }
-            }
-            monitoring_dir_list.push(monitoring_dir.clone());
-            file_dir_map_list.insert(monitoring_dir.clone(), file_dir_map.clone());
-        }
-    } else {
-        error!("error in reading config, missing config!");
-        return Ok(());
-    }
+    let Some((monitoring_dir_list,file_dir_map_list,file_dir_map)) = load_config(CONFIG_FILE) else{todo!();};
 
     let (supported_extensions, supported_types) = get_spprtd_extns_and_type(&file_dir_map);
-
-    let poll_delay: Duration = Duration::from_secs(POLL_DELAY_SECS);
 
     info!(
         "supported_types: {:?}\nsupported_extensions: {:?}",
@@ -73,59 +32,33 @@ fn main() -> anyhow::Result<()> {
     );
     info!("file_dir_map_list: {:?}", file_dir_map_list);
 
-    let mut watcher = DirmonWatcher::from(Tx, DirmonWatcherConfig::default());
+    const POLL_DELAY_SECS: u64 = 1;
+    let poll_delay: Duration = Duration::from_secs(POLL_DELAY_SECS);
+
+    let watcher = DirmonWatcher::from(tx, DirmonWatcherConfig::from(notify::Config::default().with_poll_interval(poll_delay)));
 
     // Watcher instance creator
     // spins a new watcher thread for each monitoring directory
     for monitoring_dir in monitoring_dir_list {
         info!("listening on {:?}", monitoring_dir);
-        watcher.watch(&monitoring_dir, DirmonWatchMode::NonRecursive);
+
+        // runs for the start
+        //
+        // initialization
+        let files_list: Vec<Box<File>> = get_files(&monitoring_dir).unwrap_or(vec![]);
+
+        let _ = check_and_write_dir(
+            &file_dir_map,
+            &monitoring_dir,
+            &files_list,
+            &supported_extensions,
+        );
+
+        let _ = move_files(&file_dir_map, &monitoring_dir, &files_list);
+        let _ = watcher.watch(&monitoring_dir, DirmonWatchMode::NonRecursive);
     }
 
-    // runs for the start
-    //
-    // initialization
-    let files_list: Vec<Box<File>> = get_files(&monitoring_dir).unwrap_or(vec![]);
-
-    let _ = check_and_write_dir(
-        &file_dir_map,
-        &monitoring_dir,
-        &files_list,
-        &supported_extensions,
-    );
-
-    let _ = move_files(&file_dir_map, &monitoring_dir, &files_list);
-
-    // ends here..
-
-    for res in Rx {
-        match &res {
-            Ok(event) => {
-                let event_monitoring_directory_list: Vec<Directory> = event
-                    .paths
-                    .iter()
-                    .filter_map(|e| match e.parent() {
-                        Some(parent_path) => Some(parent_path.display().to_string()),
-                        None => {
-                            error!("Path {:?} has no parent directory, skipping.", e);
-                            None
-                        }
-                    })
-                    .map(|e| Directory::from(e, vec![]))
-                    .collect();
-
-                for event_monitoring_directory in event_monitoring_directory_list {
-                    if let Some(file_dir_map) = file_dir_map_list.get(&event_monitoring_directory) {
-                        // ????
-                        let _ = match_response(file_dir_map, &supported_extensions, &res); // have guards before hand, so shouldn't crash
-                    }
-                }
-            }
-            Err(e) => {
-                error!("{}",e);
-                todo!();
-            }
-        }
-    }
+    let reactor = DirmonReactor::from(rx);
+    reactor.blocking_react(file_dir_map_list,supported_extensions);
     Ok(())
 }

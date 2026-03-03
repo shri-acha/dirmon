@@ -1,7 +1,7 @@
 pub mod channel;
 pub mod watcher;
+pub mod reactor;
 use crate::fmt;
-use std::io::{self};
 use std::path::{self, PathBuf};
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
@@ -46,6 +46,7 @@ impl fmt::Display for File {
     }
 }
 
+/// Used to represent the Directory and its internal files for monitoring.
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub struct Directory {
     pub d_path: Box<PathBuf>,
@@ -67,10 +68,5 @@ impl Directory {
             d_path: Box::new(PathBuf::from(d_path)),
             d_files: d_files,
         }
-    }
-
-    pub fn add_file(&mut self, file_buf: File) -> io::Result<()> {
-        self.d_files.push(file_buf);
-        Ok(())
     }
 }
