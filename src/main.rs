@@ -25,10 +25,6 @@ fn main() -> anyhow::Result<()> {
     else {
         panic!("Failure to load config file!");
     };
-    // info!(
-    //     "supported_types: {:?}\nsupported_extensions: {:?}",
-    //     supported_types, supported_extensions
-    // );
     // debug!("file_dir_map_list: {:?}", file_dir_map_list);
 
     let poll_delay: Duration = Duration::from_secs(POLL_DELAY_SECS);
@@ -49,11 +45,14 @@ fn main() -> anyhow::Result<()> {
                 panic!("missing supported mapping for monitoring directory!");
             };
 
+        info!("monitoring directory:{}",monitoring_dir.d_path.display());
+        info!("supported_types: {:?}",supported_types);
+        info!("supported_extensions: {:?}",supported_extensions);
+
         // runs for the start
         // initialization
         let files_list: Vec<Box<File>> = helpers::files::get_files(monitoring_dir).unwrap_or(vec![]);
         monitoring_dir.d_files = files_list.clone();
-        // debug!("Monitoring Directory: {:?}", monitoring_dir);
         // debug!("Files list: {:?}", files_list);
         let _ = helpers::files::check_and_write_dir(
             &file_dir_map,

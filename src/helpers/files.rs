@@ -59,7 +59,7 @@ pub fn move_files(
                         debug!("failed to move file! s:{:?}\td:{:?}", s_path, &d_path);
                     }
                 } else {
-                    info!("file already exists in the destination!");
+                    debug!("file already exists in the destination!");
                 }
             } else {
                 error!("{:?} source directory doesn't exist!", s_path);
