@@ -1,7 +1,7 @@
+use crate::Directory;
+use crate::{error, info};
 use configparser::ini::Ini;
 use std::collections::{BTreeMap, HashMap};
-use crate::{Directory};
-use crate::{error,info};
 
 pub fn load_config(
     config_file_name: &'static str,

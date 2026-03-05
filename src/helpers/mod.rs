@@ -1,9 +1,9 @@
-pub mod files;
 pub mod config;
 pub mod extensions;
+pub mod files;
 use crate::{Directory, File};
 use log::{debug, error};
-use std::collections::{BTreeMap,HashSet};
+use std::collections::BTreeMap;
 
 pub fn match_response(
     file_dir_map: &BTreeMap<String, Vec<String>>,
@@ -44,9 +44,7 @@ pub fn match_response(
                             error!("error modifying directory!: {}", e);
                             error!(
                                 "[STATE]:\t{:?}{:?}{:?}",
-                                file_dir_map,
-                                &event_monitoring_directory,
-                                &files_list,
+                                file_dir_map, &event_monitoring_directory, &files_list,
                             );
                         }
                     }

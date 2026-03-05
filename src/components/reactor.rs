@@ -1,7 +1,7 @@
 use crate::helpers::match_response;
 use crate::{Directory, error};
 use log::debug;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 use std::sync::mpsc::Receiver;
 
 pub struct DirmonReactor {
@@ -40,7 +40,7 @@ impl DirmonReactor {
                         if let Some(file_dir_map) =
                             file_dir_map_list.get(&event_monitoring_directory)
                         {
-                            let _ = match_response(file_dir_map,&res);
+                            let _ = match_response(file_dir_map, &res);
                         }
                     }
                 }

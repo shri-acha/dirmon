@@ -1,8 +1,8 @@
-use crate::{Directory, File};
-use std::{io,fs};
-use std::collections::{HashSet,BTreeMap};
-use crate::{error,debug,info};
 use crate::helpers::extensions;
+use crate::{Directory, File};
+use crate::{debug, error};
+use std::collections::{BTreeMap, HashSet};
+use std::{fs, io};
 
 /// returns the list of files within the desired directory
 pub fn get_files(dir: &Directory) -> io::Result<Vec<Box<File>>> {
@@ -39,7 +39,8 @@ pub fn move_files(
     files_list: &Vec<Box<File>>,
 ) -> Option<String> {
     for file in files_list {
-        if let Some(dir_name) = extensions::get_type_for_extension(file_dir_map, &file.f_extension) {
+        if let Some(dir_name) = extensions::get_type_for_extension(file_dir_map, &file.f_extension)
+        {
             let u_path = monitoring_dir.d_path.join(dir_name);
             let d_path = u_path.join(file.f_name.clone());
             let s_path = &file.f_path;
@@ -79,7 +80,12 @@ pub fn check_and_write_dir(
 
     // keeps a list of unique extensions that are also supported by the instance
     for file in files_list {
-        if file_dir_map.into_iter().map(|(k,v)|{k}).collect::<Vec<_>>().contains(&&file.f_extension) {
+        if file_dir_map
+            .into_iter()
+            .map(|(k, _)| k)
+            .collect::<Vec<_>>()
+            .contains(&&file.f_extension)
+        {
             u_extensions.insert(file.f_extension.clone());
         }
     }

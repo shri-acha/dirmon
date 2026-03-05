@@ -1,5 +1,5 @@
-use std::collections::{BTreeMap, HashSet,HashMap};
-use crate::{Directory};
+use crate::Directory;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 /// maybe returns the type for the extension
 pub fn get_type_for_extension(
@@ -17,7 +17,7 @@ pub fn get_type_for_extension(
 /// returns supported extensions and types from the source map  
 pub fn get_supported_extension_and_type(
     directory: &Directory,
-    file_dir_map_list: &HashMap<Directory, BTreeMap<String, Vec<String>>>
+    file_dir_map_list: &HashMap<Directory, BTreeMap<String, Vec<String>>>,
 ) -> Option<(HashSet<String>, Vec<String>)> {
     let file_dir_map = file_dir_map_list.get(directory)?;
 

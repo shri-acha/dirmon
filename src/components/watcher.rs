@@ -43,16 +43,17 @@ impl DirmonWatcher {
 }
 
 impl Watchable for DirmonWatcher {
-    fn watch(&self, directory: &Directory, watch_mode: DirmonWatchMode) -> anyhow::Result<impl Watcher> {
+    fn watch(
+        &self,
+        directory: &Directory,
+        watch_mode: DirmonWatchMode,
+    ) -> anyhow::Result<impl Watcher> {
         let notify_watch_mode = match watch_mode {
             DirmonWatchMode::Recursive => RecursiveMode::Recursive,
             DirmonWatchMode::NonRecursive => RecursiveMode::NonRecursive,
         };
 
-        let mut notify_watcher = notify::PollWatcher::new(
-            self.tx.clone(),
-            self.config.inner,
-        )?;
+        let mut notify_watcher = notify::PollWatcher::new(self.tx.clone(), self.config.inner)?;
 
         info!("listening on {:?}", directory.d_path);
         notify_watcher.watch(&directory.d_path, notify_watch_mode)?;
