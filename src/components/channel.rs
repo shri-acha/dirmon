@@ -1,5 +1,5 @@
 use std::sync::mpsc::channel;
-use std::sync::mpsc::{Receiver,Sender};
+use std::sync::mpsc::{Receiver, Sender};
 
 pub struct DirmonChannel {
     pub rx: Receiver<notify::Result<notify::Event>>,

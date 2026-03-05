@@ -1,27 +1,29 @@
-use crate::helpers::{match_response};
+use crate::helpers::match_response;
+use crate::{Directory, error};
+use log::debug;
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::mpsc::Receiver;
-use crate::{error,Directory};
-use std::collections::{HashMap,BTreeMap,HashSet};
 
-pub struct DirmonReactor{
+pub struct DirmonReactor {
     rx: Receiver<notify::Result<notify::Event>>,
 }
 
-impl DirmonReactor{
-    pub fn from(rx: Receiver<notify::Result<notify::Event>>,) ->Self{
-        Self{
-            rx,
-        }
+impl DirmonReactor {
+    pub fn from(rx: Receiver<notify::Result<notify::Event>>) -> Self {
+        Self { rx }
     }
 }
 
 impl DirmonReactor {
-    pub fn blocking_react(self,file_dir_map_list:HashMap<Directory, BTreeMap<String, Vec<String>>>,supported_extensions: HashSet<String>){
-
+    pub fn blocking_react(
+        self,
+        file_dir_map_list: HashMap<Directory, BTreeMap<String, Vec<String>>>,
+        supported_extensions: HashSet<String>,
+    ) {
         for res in self.rx {
+            debug!("{:?}", res);
             match &res {
                 Ok(event) => {
-
                     let event_monitoring_directory_list: Vec<Directory> = event
                         .paths
                         .iter()
@@ -36,14 +38,15 @@ impl DirmonReactor {
                         .collect();
 
                     for event_monitoring_directory in event_monitoring_directory_list {
-                        if let Some(file_dir_map) = file_dir_map_list.get(&event_monitoring_directory) {
-                            // ????
-                            let _ = match_response(file_dir_map, &supported_extensions, &res); // have guards before hand, so shouldn't crash
+                        if let Some(file_dir_map) =
+                            file_dir_map_list.get(&event_monitoring_directory)
+                        {
+                            let _ = match_response(file_dir_map, &supported_extensions, &res);
                         }
                     }
                 }
                 Err(e) => {
-                    error!("{}",e);
+                    error!("{}", e);
                     todo!();
                 }
             }

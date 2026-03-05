@@ -1,7 +1,7 @@
 use crate::{Directory, File};
-use log::{debug, error, info};
-use std::collections::{BTreeMap, HashSet,HashMap};
 use configparser::ini::Ini;
+use log::{debug, error, info};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::{fs, io};
 
 /// returns the list of files within the desired directory
@@ -32,8 +32,13 @@ pub fn get_files(dir: &Directory) -> io::Result<Vec<Box<File>>> {
     Ok(files)
 }
 
-pub fn load_config(config_file_name: &'static str)->Option<(Vec<Directory>,HashMap<Directory, BTreeMap<String, Vec<String>>>,BTreeMap<String, Vec<String>>)>{
-
+pub fn load_config(
+    config_file_name: &'static str,
+) -> Option<(
+    Vec<Directory>,
+    HashMap<Directory, BTreeMap<String, Vec<String>>>,
+    BTreeMap<String, Vec<String>>,
+)> {
     let mut monitoring_dir_list: Vec<Directory> = vec![];
     let mut file_dir_map_list: HashMap<Directory, BTreeMap<String, Vec<String>>> = HashMap::new();
     let mut file_dir_map: BTreeMap<String, Vec<String>> = BTreeMap::new();
@@ -61,7 +66,7 @@ pub fn load_config(config_file_name: &'static str)->Option<(Vec<Directory>,HashM
             monitoring_dir_list.push(monitoring_dir.clone());
             file_dir_map_list.insert(monitoring_dir.clone(), file_dir_map.clone());
         }
-        Some((monitoring_dir_list,file_dir_map_list,file_dir_map))
+        Some((monitoring_dir_list, file_dir_map_list, file_dir_map))
     } else {
         error!("error in reading config, missing config!");
         None
@@ -129,7 +134,6 @@ pub fn check_and_write_dir(
 
     // keeps a list of unique extensions that are also supported by the instance
     for file in files_list {
-        // println!("{:?}{:?}",file.f_extension, supported_extensions);
         if supported_extensions.contains(&file.f_extension) {
             u_extensions.insert(file.f_extension.clone());
         }
@@ -144,9 +148,8 @@ pub fn check_and_write_dir(
 
             if let Some(dir_name) = dir_name {
                 let u_path = monitoring_dir.d_path.join(dir_name);
+                debug!("{:?} source path exists!", u_path);
                 if !u_path.exists() {
-                    debug!("{:?} source path exists!", u_path);
-
                     if let Ok(_) = fs::create_dir(&u_path) {
                         debug!("{:?} created!", u_path);
                         return Ok(format!("{:?} created!", u_path)); // necessary log (necessary)
@@ -154,7 +157,7 @@ pub fn check_and_write_dir(
                         error!("{:?} creation failed!", u_path); // safe log (necessary)
                     }
                 } else {
-                    info!("{:?} already exists!", u_path); // floods log (unecessary)
+                    // info!("{:?} already exists!", u_path);
                 }
             } else {
                 error!("{:?} extension type not supported!", dir_name); // floods log (only when a
@@ -203,9 +206,10 @@ pub fn match_response(
                 })
                 .map(|e| Directory::from(e, vec![]))
                 .collect();
-            for event_monitoring_directory in event_monitoring_directory_list {
-                let files_list = get_files(&event_monitoring_directory).unwrap_or_default();
 
+            for mut event_monitoring_directory in event_monitoring_directory_list {
+                let files_list: Vec<Box<File>> =
+                    get_files(&event_monitoring_directory).unwrap_or(vec![]);
                 if files_list.is_empty() {
                     continue;
                 } else {
@@ -239,6 +243,8 @@ pub fn match_response(
                     }
                     debug!("Event:{:?}", event.paths);
                 }
+
+                event_monitoring_directory.d_files = files_list;
             }
         }
     }

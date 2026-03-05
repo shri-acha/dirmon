@@ -1,6 +1,6 @@
 pub mod channel;
-pub mod watcher;
 pub mod reactor;
+pub mod watcher;
 use crate::fmt;
 use std::path::{self, PathBuf};
 
@@ -47,10 +47,22 @@ impl fmt::Display for File {
 }
 
 /// Used to represent the Directory and its internal files for monitoring.
-#[derive(Debug, Clone, Eq, Hash, PartialEq)]
+#[derive(Debug, Clone, Eq)]
 pub struct Directory {
     pub d_path: Box<PathBuf>,
-    pub d_files: Vec<File>,
+    pub d_files: Vec<Box<File>>,
+}
+
+impl PartialEq for Directory {
+    fn eq(&self, other: &Self) -> bool {
+        self.d_path == other.d_path // ignore extensions for equality
+    }
+}
+
+impl std::hash::Hash for Directory {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.d_path.hash(state); // ignore extensions for hashing
+    }
 }
 
 impl Default for Directory {
@@ -63,7 +75,7 @@ impl Default for Directory {
 }
 
 impl Directory {
-    pub fn from(d_path: String, d_files: Vec<File>) -> Self {
+    pub fn from(d_path: String, d_files: Vec<Box<File>>) -> Self {
         Self {
             d_path: Box::new(PathBuf::from(d_path)),
             d_files: d_files,
