@@ -44,9 +44,12 @@ Once initialized, dirmon creates the necessary folders and sorts the files accor
 
 dirmon is controlled by a simple configuration file.
 
-⚠️ **Has only untested support for multidirectory monitoring**
+- v0.0
 1.  The **first line** must be the absolute path to the directory you want to monitor, enclosed in square brackets `[]`.
 2.  Subsequent lines define the **sorting rules**. Each line specifies a folder name and the file extensions (separated by commas) that should be moved into it.
+
+- v0.1
+3.  Has support for **multidirectory** monitoring. 
 
 The format is: `FOLDER_NAME = ext1,ext2,ext3`
 
