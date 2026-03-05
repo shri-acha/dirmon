@@ -3,9 +3,10 @@ use crate::{Directory, File};
 use crate::{debug, error};
 use std::collections::{BTreeMap, HashSet};
 use std::{fs, io};
+use anyhow::anyhow;
 
 /// returns the list of files within the desired directory
-pub fn get_files(dir: &Directory) -> io::Result<Vec<Box<File>>> {
+pub fn get_files(dir: &Directory) -> anyhow::Result<Vec<Box<File>>> {
     let mut files: Vec<Box<File>> = vec![];
 
     if dir.d_path.is_dir() {
@@ -25,9 +26,7 @@ pub fn get_files(dir: &Directory) -> io::Result<Vec<Box<File>>> {
         }
     } else {
         error!("path configured to monitor is not a directory!");
-        return Err(io::Error::other(
-            "path configured to monitor is not a directory!",
-        ));
+        return Err(anyhow!("path configured to monitor is not a directory!"));
     }
     Ok(files)
 }

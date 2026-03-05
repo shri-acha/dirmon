@@ -39,6 +39,10 @@ fn main() -> anyhow::Result<()> {
 
     let mut watcher_handles = vec![];
 
+    if monitoring_dir_list.len() < 1 {
+        error!("there must be atleast one file to monitor!");
+    }
+
     // Watcher instance creator
     // spins a new watcher thread for each monitoring directory
     for monitoring_dir in monitoring_dir_list.iter_mut() {
@@ -58,7 +62,7 @@ fn main() -> anyhow::Result<()> {
         // runs for the start
         // initialization
         let files_list: Vec<Box<File>> =
-            helpers::files::get_files(monitoring_dir).unwrap_or(vec![]);
+            helpers::files::get_files(monitoring_dir)?;
         monitoring_dir.d_files = files_list.clone();
         // debug!("Files list: {:?}", files_list);
         let _ = helpers::files::check_and_write_dir(&file_dir_map, monitoring_dir, &files_list);

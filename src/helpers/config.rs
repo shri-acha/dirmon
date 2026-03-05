@@ -100,7 +100,7 @@ pub fn ensure_config() -> anyhow::Result<String> {
 }
 
 #[cfg(test)]
-mod tests {
+mod config_tests {
     use super::*;
     use std::io::Write;
     use tempfile::NamedTempFile;

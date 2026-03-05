@@ -46,7 +46,6 @@ impl DirmonReactor {
                 }
                 Err(e) => {
                     error!("{}", e);
-                    todo!();
                 }
             }
         }

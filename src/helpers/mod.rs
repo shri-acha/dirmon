@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 pub fn match_response(
     file_dir_map: &BTreeMap<String, Vec<String>>,
     res: &notify::Result<notify::Event>,
-) -> notify::Result<()> {
+) -> anyhow::Result<()> {
     if let Ok(event) = res {
         if let notify::event::EventKind::Create(_) = &event.kind {
             // Create event occurs
@@ -28,7 +28,7 @@ pub fn match_response(
 
             for mut event_monitoring_directory in event_monitoring_directory_list {
                 let files_list: Vec<Box<File>> =
-                    files::get_files(&event_monitoring_directory).unwrap_or(vec![]);
+                    files::get_files(&event_monitoring_directory)?;
                 if files_list.is_empty() {
                     continue;
                 } else {
