@@ -1,7 +1,5 @@
 use clap::Parser;
-use std::env;
 use crate::helpers::config::ensure_config;
-use dirs::config_dir;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]

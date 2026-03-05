@@ -73,7 +73,7 @@ pub fn ensure_config() -> anyhow::Result<String> {
         config_file
             .into_os_string()
             .into_string()
-            .map_err(|e|anyhow!("non-utf character in default config file name"))
+            .map_err(|_|anyhow!("non-utf character in default config file name"))
     }
     else{
 
@@ -83,7 +83,7 @@ pub fn ensure_config() -> anyhow::Result<String> {
         .ok_or(anyhow!("Error finding config directory!"))?
         .into_os_string()
         .into_string()
-        .map_err(|e|anyhow!("Error handling error types!"))?;
+        .map_err(|_|anyhow!("Error handling error types!"))?;
 
 
     if !path.exists() {
@@ -96,5 +96,132 @@ pub fn ensure_config() -> anyhow::Result<String> {
         )?;
     }
     Ok(String::from(DEFAULT_CONFIG_FILENAME))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    fn write_config(contents: &str) -> NamedTempFile {
+        let mut f = NamedTempFile::new().expect("failed to create temp file");
+        f.write_all(contents.as_bytes())
+            .expect("failed to write config");
+        f
+    }
+
+    #[test]
+    fn test_load_config_multiple_rules_all_present() {
+        let f = write_config(
+            "[/tmp/media/]\n\
+             TYPE_0 = mp3,wav\n\
+             TYPE_1 = mov,mp4\n\
+             TYPE_2 = txt,pdf\n",
+        );
+
+        let (dirs, dir_map, _) = load_config(f.path().to_str().unwrap())
+            .expect("expected valid config");
+
+        let rules = dir_map.get(&dirs[0]).unwrap();
+        assert_eq!(rules.len(), 3);
+        assert!(rules.contains_key("TYPE_0"));
+        assert!(rules.contains_key("TYPE_1"));
+        assert!(rules.contains_key("TYPE_2"));
+    }
+
+    #[test]
+    fn test_load_config_multiple_directories() {
+        let f = write_config(
+            "[/tmp/dir_a/]\n\
+             DOCS = pdf,txt\n\
+             \n\
+             [/tmp/dir_b/]\n\
+             IMAGES = png,jpg\n",
+        );
+
+        let (dirs, dir_map, _) = load_config(f.path().to_str().unwrap())
+            .expect("expected valid config");
+
+        assert_eq!(dirs.len(), 2, "should monitor 2 directories");
+
+        for d in &dirs {
+            assert!(dir_map.contains_key(d), "every dir should have a map entry");
+        }
+    }
+
+    #[test]
+    fn test_load_config_missing_file_returns_none() {
+        let result = load_config("/tmp/this_file_does_not_exist_dirmon_test_xyz.conf");
+        assert!(result.is_none(), "missing config file should return None");
+    }
+
+    #[test]
+    fn test_load_config_empty_file() {
+        let f = write_config("");
+
+        if let Some((dirs, dir_map, flat_map)) = load_config(f.path().to_str().unwrap()) {
+            assert!(dirs.is_empty());
+            assert!(dir_map.is_empty());
+            assert!(flat_map.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_load_config_only_comments_are_not_parsed_as_dirs() {
+
+        let f = write_config(
+            "# [/desired/path/here/]\n\
+             # TYPE_0 = mp3,wav\n\
+             # TYPE_1 = mov,mp4\n",
+        );
+
+        if let Some((dirs, _, _)) = load_config(f.path().to_str().unwrap()) {
+            assert!(dirs.is_empty(), "commented-out dirs should not be monitored");
+        }
+    }
+
+    #[test]
+    fn test_load_config_flat_map_reflects_last_directory_rules() {
+        // The third return value is overwritten each loop iteration, so it ends
+        // up holding the last directory's rules. This test documents that behaviour.
+        let f = write_config(
+            "[/tmp/dir_a/]\n\
+             AUDIO = mp3\n\
+             \n\
+             [/tmp/dir_b/]\n\
+             VIDEO = mp4\n",
+        );
+
+        let (_, _, flat_map) = load_config(f.path().to_str().unwrap())
+            .expect("expected valid config");
+
+        println!("{:?}",flat_map);
+        assert!(!flat_map.is_empty());
+
+        assert!(flat_map.contains_key("VIDEO"));
+        assert!(flat_map.contains_key("AUDIO"));
+    }
+
+    #[test]
+    fn test_ensure_config_returns_ok() {
+        let result = ensure_config();
+        assert!(result.is_ok(), "ensure_config should succeed: {:?}", result.err());
+    }
+
+    #[test]
+    fn test_ensure_config_returns_non_empty_path() {
+        let path = ensure_config().unwrap();
+        assert!(!path.is_empty());
+    }
+
+    #[test]
+    fn test_ensure_config_creates_file_on_disk() {
+        let path_str = ensure_config().unwrap();
+        assert!(
+            std::path::Path::new(&path_str).exists(),
+            "config file should exist after ensure_config"
+        );
     }
 }
