@@ -49,7 +49,7 @@ dirmon is controlled by a simple configuration file.
 2.  Subsequent lines define the **sorting rules**. Each line specifies a folder name and the file extensions (separated by commas) that should be moved into it.
 
 - v0.1
-3.  Has support for **multidirectory** monitoring. 
+1.  Has support for **multidirectory** monitoring. 
 
 The format is: `FOLDER_NAME = ext1,ext2,ext3`
 
