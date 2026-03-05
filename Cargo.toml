@@ -1,6 +1,6 @@
 [package]
 name = "dirmon"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MIT"
 description = "This utility provides the user to be able to monitor a directory and automatically configure a structure for the file to go into."
