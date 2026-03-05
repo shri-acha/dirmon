@@ -1,4 +1,5 @@
 // core
+mod cli;
 mod components;
 mod helpers;
 use crate::components::{
@@ -7,22 +8,23 @@ use crate::components::{
     reactor::DirmonReactor,
     watcher::{DirmonWatchMode, DirmonWatcher, DirmonWatcherConfig, Watchable},
 };
+use clap::Parser;
 use log::{debug, error, info};
 use notify::{self};
 use std::fmt;
 use std::time::Duration;
 
 const POLL_DELAY_SECS: u64 = 1;
-const CONFIG_FILE: &'static str = ".dirmon.conf";
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     let dirmon_channel = DirmonChannel::channel();
+    let dirmon_args = cli::DirmonArgs::parse();
     let DirmonChannel { tx, rx } = dirmon_channel;
 
     let Some((mut monitoring_dir_list, file_dir_map_list, file_dir_map)) =
-        helpers::config::load_config(CONFIG_FILE)
+        helpers::config::load_config(dirmon_args.get_config())
     else {
         panic!("Failure to load config file!");
     };

@@ -2,9 +2,16 @@ use crate::Directory;
 use crate::{error, info};
 use configparser::ini::Ini;
 use std::collections::{BTreeMap, HashMap};
+use std::{fs,path::PathBuf};
+use std::ffi::OsString;
+use anyhow::anyhow;
+use dirs::config_dir;
+
+const DEFAULT_CONFIG_PATH: &'static str = "/dirmon/dirmon.conf";
+const DEFAULT_CONFIG_FILENAME: &'static str = "dirmon.conf";
 
 pub fn load_config(
-    config_file_name: &'static str,
+    config_file_name: &str,
 ) -> Option<(
     Vec<Directory>,
     HashMap<Directory, BTreeMap<String, Vec<String>>>,
@@ -39,7 +46,55 @@ pub fn load_config(
         }
         Some((monitoring_dir_list, file_dir_map_list, file_dir_map))
     } else {
-        error!("error in reading config, missing config!");
+        error!("[{}] error in reading config, missing config!",config_file_name);
         None
+    }
+}
+
+pub fn ensure_config() -> anyhow::Result<String> {
+    if let Some(config_dir) = dirs::config_dir() {
+
+        let mut config_file_path = OsString::new(); 
+        config_file_path.push(config_dir.into_os_string());
+        config_file_path.push(OsString::from(DEFAULT_CONFIG_PATH));
+
+        let config_file = PathBuf::from(config_file_path); 
+        println!("{:?}",config_file);
+
+        if !config_file.exists() {
+            fs::write(
+                config_file.clone(),
+                r#"# [/desired/path/here/]
+    # TYPE_0 = mp3,wav
+    # TYPE_1 = mov,mp4
+    # TYPE_2 = txt,pdf"#,
+            )?;
+        }
+        config_file
+            .into_os_string()
+            .into_string()
+            .map_err(|e|anyhow!("non-utf character in default config file name"))
+    }
+    else{
+
+    let path = std::path::Path::new(DEFAULT_CONFIG_FILENAME);
+
+    config_dir()
+        .ok_or(anyhow!("Error finding config directory!"))?
+        .into_os_string()
+        .into_string()
+        .map_err(|e|anyhow!("Error handling error types!"))?;
+
+
+    if !path.exists() {
+        fs::write(
+            DEFAULT_CONFIG_FILENAME,
+            r#"# [/desired/path/here/]
+# TYPE_0 = mp3,wav
+# TYPE_1 = mov,mp4
+# TYPE_2 = txt,pdf"#,
+        )?;
+    }
+    Ok(String::from(DEFAULT_CONFIG_FILENAME))
     }
 }
