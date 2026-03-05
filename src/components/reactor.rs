@@ -18,7 +18,6 @@ impl DirmonReactor {
     pub fn blocking_react(
         self,
         file_dir_map_list: HashMap<Directory, BTreeMap<String, Vec<String>>>,
-        supported_extensions: HashSet<String>,
     ) {
         for res in self.rx {
             debug!("{:?}", res);
@@ -41,7 +40,7 @@ impl DirmonReactor {
                         if let Some(file_dir_map) =
                             file_dir_map_list.get(&event_monitoring_directory)
                         {
-                            let _ = match_response(file_dir_map, &supported_extensions, &res);
+                            let _ = match_response(file_dir_map,&res);
                         }
                     }
                 }

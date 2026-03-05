@@ -54,7 +54,7 @@ impl Watchable for DirmonWatcher {
             self.config.inner,
         )?;
 
-        info!("listening on {:?}", directory);
+        info!("listening on {:?}", directory.d_path);
         notify_watcher.watch(&directory.d_path, notify_watch_mode)?;
         Ok(notify_watcher)
     }
