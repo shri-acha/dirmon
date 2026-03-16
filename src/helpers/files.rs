@@ -1,6 +1,6 @@
 use crate::helpers::extensions;
 use crate::{Directory, File};
-use crate::{debug, error};
+use crate::{debug, error,info};
 use std::collections::{BTreeMap, HashSet};
 use std::{fs, io};
 use anyhow::anyhow;
@@ -51,15 +51,15 @@ pub fn move_files(
                         &d_path,
                         &fs_extra::file::CopyOptions::new(),
                     ) {
-                        debug!(
+                        info!(
                             "successfully moved file! [{}] s:{:?}\td:{:?}",
                             size, s_path, &d_path
                         );
                     } else {
-                        debug!("failed to move file! s:{:?}\td:{:?}", s_path, &d_path);
+                        error!("failed to move file! s:{:?}\td:{:?}", s_path, &d_path);
                     }
                 } else {
-                    debug!("file already exists in the destination!");
+                    info!("file already exists in the destination!");
                 }
             } else {
                 error!("{:?} source directory doesn't exist!", s_path);
@@ -76,12 +76,15 @@ pub fn check_and_write_dir(
     files_list: &Vec<Box<File>>,
 ) -> io::Result<String> {
     let mut u_extensions: HashSet<String> = HashSet::new();
-
+    debug!("cawd called!");
     // keeps a list of unique extensions that are also supported by the instance
     for file in files_list {
+
         if file_dir_map
             .into_iter()
-            .map(|(k, _)| k)
+            .map(|(_,v)| v)
+            .into_iter()
+            .flatten()
             .collect::<Vec<_>>()
             .contains(&&file.f_extension)
         {
@@ -92,9 +95,9 @@ pub fn check_and_write_dir(
     if u_extensions.len() <= 0 {
         debug!("directory empty");
     } else {
-        for extension in u_extensions.iter() {
+        for extension in &u_extensions {
+            println!("{}",extension);
             let dir_name = extensions::get_type_for_extension(file_dir_map, extension);
-            // println!("{:?}",dir_name);
 
             if let Some(dir_name) = dir_name {
                 let u_path = monitoring_dir.d_path.join(dir_name);
@@ -102,16 +105,15 @@ pub fn check_and_write_dir(
                 if !u_path.exists() {
                     if let Ok(_) = fs::create_dir(&u_path) {
                         // debug!("{:?} created!", u_path);
-                        return Ok(format!("{:?} created!", u_path)); // necessary log (necessary)
+                        info!("{:?} created!", u_path);
                     } else {
-                        error!("{:?} creation failed!", u_path); // safe log (necessary)
+                        error!("{:?} creation failed!", u_path);
                     }
                 } else {
                     // info!("{:?} already exists!", u_path);
                 }
             } else {
-                error!("{:?} extension type not supported!", dir_name); // floods log (only when a
-                // file type )
+                error!("{:?} extension type not supported!", dir_name); 
             }
         }
     }
